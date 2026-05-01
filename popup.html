@@ -24,10 +24,10 @@
   --amber:     #f59e0b;
   --blue:      #60a5fa;
 
-  --sidebar-w: 72px;
+  --sidebar-w: 44px;
   --popup-h:   600px;
-  --r:         6px;
-  --r2:        10px;
+  --r:         5px;
+  --r2:        8px;
 
   font-family: 'Noto Sans TC', sans-serif;
 }
@@ -69,25 +69,25 @@ body {
 }
 
 .brand-mark {
-  width: 28px;
-  height: 28px;
-  border: 1.5px solid var(--line2);
-  border-radius: var(--r);
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line2);
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   flex-shrink: 0;
 }
-.brand-mark svg { width: 14px; height: 14px; }
+.brand-mark svg { width: 11px; height: 11px; }
 
 .nav-items {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 1px;
   width: 100%;
-  padding: 0 6px;
+  padding: 0 5px;
   margin-bottom: auto;
 }
 
@@ -96,12 +96,12 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 7px 0;
+  gap: 2px;
+  padding: 6px 0;
   border: none;
   background: none;
   cursor: pointer;
-  border-radius: var(--r);
+  border-radius: 4px;
   color: var(--text3);
   transition: color .15s, background .15s;
   position: relative;
@@ -111,33 +111,33 @@ body {
 .nav-item.active::before {
   content: '';
   position: absolute;
-  left: -8px;
+  left: -6px;
   top: 50%;
   transform: translateY(-50%);
   width: 2px;
-  height: 20px;
+  height: 16px;
   background: var(--text);
   border-radius: 0 2px 2px 0;
 }
 
-.nav-icon-mono {
+.nav-icon, .nav-icon-mono {
   font-family: 'DM Mono', monospace;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 500;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   line-height: 1;
 }
 .nav-label {
   font-family: 'DM Mono', monospace;
-  font-size: 7px;
-  letter-spacing: 1px;
+  font-size: 6px;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
   line-height: 1;
 }
 
 .sidebar-bottom {
   width: 100%;
-  padding: 0 6px;
+  padding: 0 5px;
 }
 
 /* ══════════════════════════════════════
@@ -153,21 +153,23 @@ body {
 
 /* Topbar */
 .topbar {
-  height: 52px;
-  padding: 0 24px;
+  height: 44px;
+  padding: 0 14px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
 .topbar-title {
   font-family: 'DM Mono', monospace;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   color: var(--text2);
+  flex: 1;
+  min-width: 0;
 }
 .topbar-title span { color: var(--text); }
 
@@ -328,16 +330,16 @@ body {
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 9px 16px;
+  gap: 4px;
+  padding: 5px 10px;
   border-radius: var(--r);
   border: 1px solid var(--line2);
   background: none;
   color: var(--text2);
   font-family: 'DM Mono', monospace;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 500;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.2px;
   cursor: pointer;
   transition: all .15s;
   white-space: nowrap;
@@ -353,11 +355,14 @@ body {
 .btn-primary:hover { background: #d0d0d0; border-color: #d0d0d0; color: var(--bg); }
 .btn-primary:disabled { opacity: .3; }
 
-.btn-sm { padding: 6px 11px; font-size: 9px; }
-.btn-xs { padding: 4px 8px; font-size: 9px; }
+.btn-ghost { border-color: transparent; color: var(--text3); padding: 5px 7px; }
+.btn-ghost:hover { color: var(--text2); background: var(--accent-bg); border-color: transparent; }
 
-.btn-danger { border-color: var(--red); color: var(--red); }
-.btn-danger:hover { background: var(--red); color: var(--bg); }
+.btn-sm { padding: 4px 9px; font-size: 9px; }
+.btn-xs { padding: 3px 8px; font-size: 8px; }
+
+.btn-danger { color: var(--red); border-color: transparent; padding: 5px 7px; }
+.btn-danger:hover { border-color: var(--red); background: rgba(248,113,113,.07); }
 
 .btn-success { border-color: var(--green); color: var(--green); }
 .btn-success:hover { background: var(--green); color: var(--bg); }
@@ -878,8 +883,8 @@ body.font-large .label,
 body.font-large .field-label,
 body.font-large .log-strip,
 body.font-large .result-pre { font-size: 12px; }
-body.font-large .nav-label { font-size: 8px; }
-body.font-large .nav-icon-mono { font-size: 11px; }
+body.font-large .nav-label { font-size: 7px; }
+body.font-large .nav-icon, body.font-large .nav-icon-mono { font-size: 10px; }
 
 /* ── Distill selected prompt ── */
 .selected-prompt-preview {
@@ -934,6 +939,169 @@ body.font-large .nav-icon-mono { font-size: 11px; }
   margin-left: 4px;
   vertical-align: middle;
 }
+
+/* ════ PROMPT MANAGER — tab-bar + card pattern ════ */
+
+.series-tabbar {
+  display: flex; align-items: stretch;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto; flex-shrink: 0;
+  background: var(--bg2);
+  scrollbar-width: none;
+}
+.series-tabbar::-webkit-scrollbar { display: none; }
+
+.series-tab {
+  font-family: 'DM Mono', monospace; font-size: 9px; font-weight: 500;
+  letter-spacing: 0.3px; padding: 0 11px; height: 34px;
+  border: none; background: none; color: var(--text3);
+  cursor: pointer; white-space: nowrap;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: color .15s, border-color .15s;
+  display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+}
+.series-tab:hover { color: var(--text2); }
+.series-tab.active { color: var(--text); border-bottom-color: var(--text); }
+.series-tab-count {
+  font-size: 7px; background: var(--bg3); border: 1px solid var(--line2);
+  border-radius: 99px; padding: 1px 4px; color: var(--text3);
+}
+.series-tab.active .series-tab-count { color: var(--text2); }
+
+.tab-add-btn {
+  font-size: 14px; color: var(--text3);
+  border: none; background: none; cursor: pointer;
+  padding: 0 9px; height: 34px;
+  display: flex; align-items: center; transition: color .15s;
+  flex-shrink: 0;
+}
+.tab-add-btn:hover { color: var(--text2); }
+
+.cards-scroll {
+  flex: 1; overflow-y: auto; padding: 10px 12px;
+  min-height: 0; display: flex; flex-direction: column; gap: 6px;
+}
+
+/* Prompt card */
+.pcard {
+  background: var(--bg2); border: 1px solid var(--line);
+  border-radius: var(--r2); overflow: hidden;
+  transition: border-color .15s;
+}
+.pcard:hover { border-color: var(--line2); }
+.pcard.expanded { border-color: var(--line2); }
+
+.pcard-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; cursor: pointer; user-select: none;
+}
+.pcard-num {
+  font-family: 'DM Mono', monospace; font-size: 8px;
+  color: var(--text3); min-width: 14px; flex-shrink: 0;
+}
+.pcard-info { flex: 1; min-width: 0; }
+.pcard-name {
+  font-size: 12px; font-weight: 500; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.3; margin-bottom: 2px;
+}
+.pcard-preview {
+  font-family: 'DM Mono', monospace; font-size: 9px; color: var(--text3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4;
+}
+.pcard-head-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+.chevron {
+  font-size: 8px; color: var(--text3); transition: transform .2s;
+  flex-shrink: 0; margin-left: 1px;
+}
+.pcard.expanded .chevron { transform: rotate(180deg); }
+
+.pcard-body { display: none; }
+.pcard.expanded .pcard-body { display: block; }
+.pcard-divider { border: none; border-top: 1px solid var(--line); }
+
+.pcard-editor {
+  width: 100%; background: transparent; border: none; outline: none;
+  color: var(--text); font-family: 'Noto Sans TC', sans-serif;
+  font-size: 12px; line-height: 1.8; resize: none;
+  padding: 10px 12px 10px 34px; min-height: 72px;
+}
+.pcard-editor::placeholder { color: var(--text3); }
+
+.pcard-foot {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+.pcard-chars { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--text3); }
+
+/* Schema card name edit input */
+.schema-name-input {
+  width: 100%; background: transparent; border: none;
+  border-bottom: 1px solid var(--line); outline: none;
+  color: var(--text); font-size: 12px; font-weight: 500;
+  padding: 8px 12px 8px 34px;
+  font-family: 'Noto Sans TC', sans-serif; transition: border-color .15s;
+}
+.schema-name-input:focus { border-bottom-color: var(--line2); }
+
+/* Add prompt row */
+.add-row {
+  flex-shrink: 0; border-top: 1px solid var(--line); background: var(--bg2);
+}
+.add-row-trigger {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; cursor: pointer;
+  font-family: 'DM Mono', monospace; font-size: 9px; color: var(--text3);
+  transition: color .15s;
+}
+.add-row-trigger:hover { color: var(--text2); }
+.add-row-trigger svg { opacity: .4; }
+.add-form {
+  display: none; flex-direction: column; gap: 6px;
+  padding: 10px 12px; border-top: 1px solid var(--line);
+}
+.add-form.open { display: flex; }
+.add-form input, .add-form textarea {
+  width: 100%; background: var(--bg3); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 7px 10px; color: var(--text);
+  font-family: 'Noto Sans TC', sans-serif; font-size: 12px;
+  outline: none; transition: border-color .15s;
+}
+.add-form input { font-size: 11px; }
+.add-form input:focus, .add-form textarea:focus { border-color: var(--line2); }
+.add-form input::placeholder, .add-form textarea::placeholder { color: var(--text3); }
+.add-form textarea { resize: none; line-height: 1.6; min-height: 56px; max-height: 110px; }
+.add-form-row { display: flex; gap: 6px; align-items: center; }
+
+/* New series bar */
+.new-series-bar {
+  display: none; align-items: center; gap: 6px;
+  padding: 7px 12px; border-top: 1px solid var(--line);
+  background: var(--bg); flex-shrink: 0;
+}
+.new-series-bar.show { display: flex; }
+.new-series-bar .input {
+  flex: 1; font-family: 'DM Mono', monospace; font-size: 10px;
+  padding: 6px 9px; height: auto;
+}
+
+/* Empty dot for empty states */
+.empty-dot {
+  width: 20px; height: 20px; border: 1px solid var(--line2);
+  border-radius: 50%; margin: 0 auto 12px; opacity: .4;
+}
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+  background: var(--bg3); border: 1px solid var(--green);
+  border-radius: var(--r); padding: 6px 14px;
+  font-family: 'DM Mono', monospace; font-size: 9px; color: var(--green);
+  pointer-events: none; opacity: 0; transition: opacity .2s; z-index: 99;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; }
 </style>
 </head>
 <body style="background-color: rgb(0, 0, 0)">
@@ -964,6 +1132,11 @@ body.font-large .nav-icon-mono { font-size: 11px; }
       <span class="nav-icon-mono">PRM</span>
       <span class="nav-label">PROMPTS</span>
     </button>
+
+    <button class="nav-item" data-tab="schema">
+      <span class="nav-icon-mono">SCH</span>
+      <span class="nav-label">SCHEMA</span>
+    </button>
   </div>
 
   <div class="sidebar-bottom">
@@ -980,6 +1153,9 @@ body.font-large .nav-icon-mono { font-size: 11px; }
   <!-- Topbar -->
   <div class="topbar">
     <div class="topbar-title" id="topbarTitle"><span>X ETL</span> — 萃取工作流</div>
+    <div id="topbarPromptsActions" style="display:none">
+      <button class="btn btn-xs" id="loadAllSeriesBtn">▶ 全部載入</button>
+    </div>
     <div class="ai-pills" id="topAiSelect" style="display:none">
       <button class="ai-pill active" data-ai="gpt">GPT</button>
       <button class="ai-pill" data-ai="gemini">Gemini</button>
@@ -998,7 +1174,7 @@ body.font-large .nav-icon-mono { font-size: 11px; }
       <div class="steps" id="etlSteps">
         <div class="step-item">
           <div class="step-num active" id="sn1">1</div>
-          <div class="step-text active" id="st1">選擇 Prompt</div>
+          <div class="step-text active" id="st1">選 Prompt &amp; Schema</div>
         </div>
         <div class="step-line"></div>
         <div class="step-item">
@@ -1008,12 +1184,7 @@ body.font-large .nav-icon-mono { font-size: 11px; }
         <div class="step-line"></div>
         <div class="step-item">
           <div class="step-num" id="sn3">3</div>
-          <div class="step-text" id="st3">送 AI 整理</div>
-        </div>
-        <div class="step-line"></div>
-        <div class="step-item">
-          <div class="step-num" id="sn4">4</div>
-          <div class="step-text" id="st4">核可 / 輸出</div>
+          <div class="step-text" id="st3">儲存結果</div>
         </div>
       </div>
 
@@ -1032,6 +1203,15 @@ body.font-large .nav-icon-mono { font-size: 11px; }
         <!-- Active prompt list -->
         <div class="prompt-stack" id="promptList">
           <div class="prompt-empty">尚無 Prompt — 從上方選取或直接新增</div>
+        </div>
+
+        <!-- Schema picker -->
+        <div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
+          <div class="field-label" style="margin-bottom:6px">Schema 格式</div>
+          <select id="extractSchemaSel" class="input" style="width:100%;height:32px;font-size:11px;padding:4px 8px">
+            <option value="">— 選擇 Schema 格式（選填）—</option>
+          </select>
+          <pre class="selected-prompt-preview" id="extractSchemaPreview" data-empty="1" style="margin-top:6px;max-height:80px;overflow:auto"></pre>
         </div>
       </div>
 
@@ -1064,62 +1244,17 @@ body.font-large .nav-icon-mono { font-size: 11px; }
         <div class="log-strip" id="extractLog"><span class="ll">就緒</span></div>
       </div>
 
-      <!-- Grok responses -->
-      <div id="grokResponseSection" style="display:none">
+      <!-- Step 3: Extract result -->
+      <div id="extractResultSection" style="display:none">
         <div class="section">
           <div class="section-head">
-            <div class="section-title">Grok 萃取結果</div>
-          </div>
-          <div class="response-list" id="grokResponseList"></div>
-        </div>
-      </div>
-
-      <!-- Step 3: Send to AI -->
-      <div id="postProcessSection" style="display:none">
-        <div class="section" id="stepSection3">
-          <div class="section-head">
-            <div class="section-title">Step 3 — 送 AI 整理</div>
-            <div class="ai-pills" id="extractAiSelect">
-              <button class="ai-pill active" data-ai="gpt">GPT</button>
-              <button class="ai-pill" data-ai="gemini">Gemini</button>
-              <button class="ai-pill" data-ai="claude">Claude</button>
-              <button class="ai-pill" data-ai="grok">Grok</button>
-            </div>
-          </div>
-          <div class="field">
-            <label class="field-label">整理 Prompt <span style="color:var(--text3);font-weight:400">（<code style="color:var(--blue)">{{responses}}</code> 代入，留空用預設）</span></label>
-            <textarea class="ta mono" id="structureTpl" rows="3" placeholder="留空使用預設模板"></textarea>
-          </div>
-          <div class="run-row">
-            <button class="btn btn-primary" id="runStructureBtn">送 AI 整理</button>
-            <button class="btn btn-danger" id="stopStructureBtn" style="display:none">停止</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Step 4: Review -->
-      <div id="reviewSection" style="display:none">
-        <div class="section" id="stepSection4">
-          <div class="section-head">
-            <div class="section-title">Step 4 — 檢視 &amp; 核可 <span style="color:var(--text3);font-weight:400;font-size:9px">可點格編輯</span></div>
+            <div class="section-title">Step 3 — 萃取結果</div>
             <div class="row" style="gap:4px">
-              <button class="btn btn-xs view-toggle-btn" id="viewTextBtn">原文</button>
-              <button class="btn btn-xs view-toggle-btn active" id="viewTableBtn">表格</button>
+              <button class="btn btn-xs" id="copyExtractBtn">複製</button>
+              <button class="btn btn-xs" id="saveExtractBtn">⬇ 儲存 .md</button>
             </div>
           </div>
-          <div id="resultTextView" style="display:none;margin-bottom:12px">
-            <pre class="result-pre" id="resultText"></pre>
-          </div>
-          <div id="resultTableView" style="margin-bottom:12px">
-            <div class="tbl-wrap">
-              <table><thead><tr id="revHead"></tr></thead><tbody id="revBody"></tbody></table>
-            </div>
-          </div>
-          <div class="row" style="gap:8px;justify-content:flex-end">
-            <button class="btn btn-sm" id="saveMdBtn">⬇ 儲存 .md</button>
-            <button class="btn btn-sm btn-danger" id="rejectBtn">↺ 重整</button>
-          </div>
-          <div class="log-strip" id="revLog" style="display:none;margin-top:10px"></div>
+          <pre class="result-pre" id="extractResultText" style="max-height:280px"></pre>
         </div>
       </div>
 
@@ -1150,19 +1285,16 @@ body.font-large .nav-icon-mono { font-size: 11px; }
 
       <div class="section">
         <div class="section-head">
-          <div class="section-title">輸出格式</div>
+          <div class="section-title">Schema 格式</div>
           <button class="btn btn-sm" id="saveDraftBtn">💾 存草稿</button>
         </div>
-        <div class="fmt-grid">
-          <div class="fmt-card active" data-fmt="note">
-            <div class="fmt-name">筆記.md</div>
-            <div class="fmt-desc">直接存原文，不送 AI</div>
-          </div>
-          <div class="fmt-card" data-fmt="wiki">
-            <div class="fmt-name">wiki.md</div>
-            <div class="fmt-desc">百科條目格式，送 AI 整理</div>
-          </div>
+        <div class="row" style="gap:8px;align-items:center;margin-bottom:6px">
+          <select id="distillSchemaSel" class="input" style="flex:1;height:32px;font-size:11px;padding:4px 8px">
+            <option value="">— 不用 Schema，直接存草稿 —</option>
+          </select>
+          <button class="btn btn-xs" id="clearDistillSchemaBtn">✕</button>
         </div>
+        <pre class="selected-prompt-preview" id="distillSchemaPreview" data-empty="1" style="max-height:80px;overflow:auto;margin-bottom:8px"></pre>
 
         <!-- Prompt picker -->
         <div class="row" style="gap:8px;margin-bottom:8px">
@@ -1225,40 +1357,56 @@ body.font-large .nav-icon-mono { font-size: 11px; }
 
     <!-- ════ TAB: PROMPT MANAGER ════ -->
     <div class="panel panel-fill" id="tab-prompts" style="margin:-24px">
-      <div class="pm-layout" style="flex:1;min-height:0">
 
-        <!-- Left: series -->
-        <div class="pm-sidebar">
-          <div class="label" style="margin-bottom:12px">系列</div>
-          <div id="seriesList" style="flex:1;overflow-y:auto;min-height:0"></div>
-          <div style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px">
-            <div class="row" style="gap:6px">
-              <input class="input" id="newSeriesName" placeholder="新系列名稱" style="flex:1;padding:8px 10px;font-size:12px">
-              <button class="btn btn-sm" id="addSeriesBtn">＋</button>
-            </div>
+      <!-- Series tab bar -->
+      <div class="series-tabbar" id="seriesTabbar"></div>
+
+      <!-- Cards scroll area -->
+      <div class="cards-scroll" id="seriesCards"></div>
+
+      <!-- Add prompt row -->
+      <div class="add-row" id="addPromptRow" style="display:none">
+        <div class="add-row-trigger" id="addPromptTrigger">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 1v8M1 5h8"/></svg>
+          新增 Prompt
+        </div>
+        <div class="add-form" id="addPromptForm">
+          <input id="newSeriesPromptName" placeholder="名稱，例：深度訪談問題">
+          <textarea id="newSeriesPromptText" rows="3" placeholder="Prompt 內容（{{content}} 代入正文）"></textarea>
+          <div class="add-form-row">
+            <div class="spacer"></div>
+            <button class="btn btn-ghost btn-xs" id="cancelAddPrompt">取消</button>
+            <button class="btn btn-primary btn-xs" id="confirmAddPrompt">＋ 新增</button>
           </div>
         </div>
+      </div>
 
-        <!-- Right: prompts -->
-        <div class="pm-main">
-          <div class="row row-between" style="margin-bottom:16px">
-            <div class="label" id="seriesPromptsHeader" style="margin-bottom:0">← 選擇系列</div>
-            <button class="btn btn-sm btn-primary" id="loadAllSeriesBtn" style="display:none">▶ 全部載入</button>
-          </div>
-          <div id="seriesPromptsList" style="overflow-y:auto;max-height:320px"></div>
-          <div id="seriesPromptsAdd" style="display:none;margin-top:16px">
-            <hr class="divider" style="margin-top:0">
-            <div class="label">新增 Prompt</div>
-            <div class="field">
-              <input class="input" id="newSeriesPromptName" placeholder="名稱（例：knowledge note 產生）" style="margin-bottom:8px">
-            </div>
-            <textarea class="ta" id="newSeriesPromptText" rows="3" placeholder="Prompt 內容（{{content}} 代入文字）"></textarea>
-            <div class="row" style="margin-top:8px">
-              <button class="btn btn-sm" id="addSeriesPromptBtn">＋ 新增</button>
-            </div>
+      <!-- New series bar -->
+      <div class="new-series-bar" id="newSeriesBar">
+        <input class="input" id="newSeriesName" placeholder="系列名稱，例：角色訪談">
+        <button class="btn btn-primary btn-xs" id="addSeriesBtn">新增</button>
+        <button class="btn btn-ghost btn-xs" id="cancelNewSeries">取消</button>
+      </div>
+
+    </div>
+
+    <!-- ════ TAB: SCHEMA ════ -->
+    <div class="panel panel-fill" id="tab-schema" style="margin:-24px">
+      <div class="cards-scroll" id="schemaCards"></div>
+      <div class="add-row" id="addSchemaRow">
+        <div class="add-row-trigger" id="addSchemaTrigger">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 1v8M1 5h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          新增 Schema
+        </div>
+        <div class="add-form" id="addSchemaForm">
+          <input class="input" id="newSchemaName" placeholder="Schema 名稱（例：YAML）">
+          <textarea id="newSchemaInitText" placeholder="Schema prompt 文字（{{content}} 代入原始文字）" rows="4"></textarea>
+          <div class="add-form-row">
+            <button class="btn btn-ghost" id="cancelAddSchema">取消</button>
+            <div class="spacer"></div>
+            <button class="btn btn-primary btn-xs" id="confirmAddSchema">新增</button>
           </div>
         </div>
-
       </div>
     </div>
 
@@ -1300,20 +1448,6 @@ body.font-large .nav-icon-mono { font-size: 11px; }
           <div class="sr">
             <label>長文整理 資料夾（相對於 Downloads）</label>
             <input class="input" id="distillFolder" placeholder="narrative-toolkit/distill">
-          </div>
-        </div>
-      </div>
-
-      <div class="sg">
-        <div class="label">Prompt 模板</div>
-        <div class="section">
-          <div class="field">
-            <label class="field-label">筆記.md <span style="color:var(--text3)">（留空 = 直接存原文）</span></label>
-            <textarea class="ta mono" id="noteTpl" rows="3" placeholder="留空 = 直接存原文不經 AI"></textarea>
-          </div>
-          <div class="field" style="margin-top:14px">
-            <label class="field-label">wiki.md</label>
-            <textarea class="ta mono" id="wikiTpl" rows="4">請將以下原文整理成 Wikipedia 條目風格的 markdown：包含簡介段落、## 背景、## 主要內容（子節）、## 相關概念、## 參考來源。只輸出 markdown。\n\n{{content}}</textarea>
           </div>
         </div>
       </div>
@@ -1364,11 +1498,7 @@ body.font-large .nav-icon-mono { font-size: 11px; }
   </div><!-- /panel-scroll -->
 </div><!-- /main -->
 
-<!-- Hidden fmt-btn shims for popup.js compatibility -->
-<div style="display:none" aria-hidden="true">
-  <button class="fmt-btn active" data-fmt="note"></button>
-  <button class="fmt-btn" data-fmt="wiki"></button>
-</div>
+<div class="toast" id="toast"></div>
 
 <script src="src/popup.js"></script>
 <script src="src/popup-ui-patch.js"></script>

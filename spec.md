@@ -14,6 +14,7 @@ The product should remain a compact, work-focused tool rather than a landing pag
   - X ETL
   - Distill
   - Prompt Manager
+  - Schema
   - Settings
 
 ## User Goals
@@ -30,18 +31,18 @@ The product should remain a compact, work-focused tool rather than a landing pag
 ### X ETL
 
 - Allow the user to select prompts from a reusable prompt series.
+- Allow the user to optionally select a schema template to combine with each prompt.
+- Concatenate `prompt.text + "\n\n" + schema.text` before injecting into Grok.
 - Run selected prompts against an open Grok tab.
 - Show extraction progress and logs.
-- Store raw Grok responses locally.
-- Send extracted responses to a selected AI for structured post-processing.
-- Allow review in text or table view.
-- Allow saving structured output as markdown.
+- Display Grok responses as a markdown result.
+- Allow copying or saving the result as a local `.md` file.
 
 ### Distill
 
 - Accept manually pasted text.
 - Allow grabbing text from the active page.
-- Support note and wiki output modes.
+- Allow selecting a schema template to shape the output format.
 - Allow selecting a prompt from Prompt Manager.
 - Allow selecting target AI per workflow.
 - Allow the user to decide whether AI results should be auto-saved and returned to the popup.
@@ -54,11 +55,17 @@ The product should remain a compact, work-focused tool rather than a landing pag
 - Store prompt series locally.
 - Make prompt series available to X ETL and Distill flows.
 
+### Schema
+
+- Allow creating, editing, renaming, and deleting format templates.
+- Each template has a name and a prompt text body.
+- Templates are available as schema pickers in X ETL and Distill.
+- Built-in defaults (wiki.md, YAML, Table, Markdown) are seeded on first use.
+
 ### Settings
 
 - Store automation settings.
 - Store output folder settings for extract and distill workflows.
-- Store prompt templates.
 - Store popup UI preferences:
   - width
   - height up to Chrome popup limit

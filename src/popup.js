@@ -1,17 +1,22 @@
 // popup.js
 
 let prompts = [];
-let pendingStructured = null;
-let structuredRawText = null;
 let extractAI = 'gpt';
 let distillAI = 'gpt';
-let selectedFmt = 'note';
 let series = [];
 let currentSeriesId = null;
+let expandedCardIdx = null;
 let extractSeriesId = null;
 let distillSeriesId = null;
 let distillPromptIdx = null;
 let lastDistillResult = null;
+let lastExtractResult = null;
+
+// Schema state
+let schemaTemplates = [];
+let expandedSchemaIdx = null;
+let extractSchemaId = null;  // selected in Extract tab picker
+let distillSchemaId = null;  // selected in Distill tab picker
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
@@ -20,13 +25,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderPrompts();
   renderExtractPromptPicker();
   renderDistillPromptPicker();
+  renderExtractSchemaPicker();
+  renderDistillSchemaPicker();
   bindAll();
   listenBg();
   renderExtractLibrary();
   renderDistillLibrary();
-  const d2 = await chrome.storage.local.get('rawResponses');
-  if (d2.rawResponses?.length) displayGrokResponses(d2.rawResponses);
-  if (pendingStructured) showReview(pendingStructured, structuredRawText);
 });
 
 // ── Storage ───────────────────────────────────────────────────────────────────
@@ -38,19 +42,41 @@ async function loadSettings() {
   const d = await chrome.storage.local.get([
     'prompts','extractAI','distillAI','delaySeconds',
     'fullAuto','autoDownload','draftFolder',
-    'grokTpl','wikiTpl','noteTpl','distillAutoSave','extractFolder','distillFolder',
-    'pendingStructured','promptSeries','popupWidth','popupHeight','popupFontSize','popupTextContrast','lastTab',
-    'currentSeriesId','extractSeriesId','distillSeriesId','distillPromptIdx'
+    'wikiTpl','noteTpl','distillAutoSave','extractFolder','distillFolder',
+    'promptSeries','popupWidth','popupHeight','popupFontSize','popupTextContrast','lastTab',
+    'currentSeriesId','extractSeriesId','distillSeriesId','distillPromptIdx',
+    'schemaTemplates','extractSchemaId','distillSchemaId'
   ]);
   prompts = d.prompts || [];
   extractAI = d.extractAI || 'gpt';
   distillAI = d.distillAI || 'gpt';
-  pendingStructured = d.pendingStructured || null;
   series = d.promptSeries || [];
   currentSeriesId = d.currentSeriesId || null;
   extractSeriesId = d.extractSeriesId || null;
   distillSeriesId = d.distillSeriesId || null;
   distillPromptIdx = d.distillPromptIdx ?? null;
+  extractSchemaId = d.extractSchemaId || null;
+  distillSchemaId = d.distillSchemaId || null;
+
+  // Migrate or initialize schema templates
+  schemaTemplates = d.schemaTemplates || [];
+  if (!schemaTemplates.length) {
+    const defaults = [
+      { id: crypto.randomUUID(), name: 'wiki.md',
+        text: d.wikiTpl || '請將以下原文整理成 Wikipedia 條目風格的 markdown：包含簡介段落、## 背景、## 主要內容（子節）、## 相關概念、## 參考來源。只輸出 markdown。\n\n{{content}}' },
+      { id: crypto.randomUUID(), name: 'YAML',
+        text: '請將以下內容整理成 YAML 格式，包含關鍵欄位與值。只輸出 YAML。\n\n{{content}}' },
+      { id: crypto.randomUUID(), name: 'Table',
+        text: '請將以下內容整理成 Markdown 表格，包含適當的欄位標題。只輸出 Markdown 表格。\n\n{{content}}' },
+      { id: crypto.randomUUID(), name: 'Markdown',
+        text: '請將以下內容整理成結構清晰的 Markdown 文件。只輸出 markdown。\n\n{{content}}' },
+    ];
+    if (d.noteTpl) {
+      defaults.unshift({ id: crypto.randomUUID(), name: '筆記.md', text: d.noteTpl });
+    }
+    schemaTemplates = defaults;
+    await chrome.storage.local.set({ schemaTemplates });
+  }
 
   const w = d.popupWidth || 780;
   document.body.style.width = w + 'px';
@@ -67,13 +93,8 @@ async function loadSettings() {
   $('distillAutoSave').checked = d.distillAutoSave !== false;
   $('extractFolder').value = d.extractFolder || d.draftFolder || '';
   $('distillFolder').value = d.distillFolder || d.draftFolder || '';
-  if (d.grokTpl) $('structureTpl').value = d.grokTpl;
-  if (d.wikiTpl) $('wikiTpl').value = d.wikiTpl;
-  if (d.noteTpl) $('noteTpl').value = d.noteTpl;
 
   // Sync AI buttons
-  $('extractAiSelect').querySelectorAll('.ai-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.ai === extractAI));
   $('distillAiSelect').querySelectorAll('.ai-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.ai === distillAI));
 
@@ -112,14 +133,6 @@ function bindAll() {
   document.querySelectorAll('.tab').forEach(t =>
     t.addEventListener('click', () => switchTab(t.dataset.tab)));
 
-  // Extract AI selector
-  $('extractAiSelect').querySelectorAll('.ai-btn').forEach(b =>
-    b.addEventListener('click', () => {
-      extractAI = b.dataset.ai;
-      $('extractAiSelect').querySelectorAll('.ai-btn').forEach(x => x.classList.toggle('active', x.dataset.ai === extractAI));
-      chrome.storage.local.set({ extractAI });
-    }));
-
   // Distill AI selector
   $('distillAiSelect').querySelectorAll('.ai-btn').forEach(b =>
     b.addEventListener('click', () => {
@@ -128,7 +141,6 @@ function bindAll() {
       chrome.storage.local.set({ distillAI });
     }));
 
-  // Prompts
   // Extract
   $('startBtn').addEventListener('click', startExtract);
   $('stopBtn').addEventListener('click', () => {
@@ -136,32 +148,13 @@ function bindAll() {
     setRunUI(false); elog('已停止', 'warn');
   });
 
-  // Review
-  $('rejectBtn').addEventListener('click', rejectRedo);
-  $('saveMdBtn').addEventListener('click', saveStructuredMd);
-  $('runStructureBtn').addEventListener('click', runStructure);
-  $('stopStructureBtn').addEventListener('click', () => {
-    chrome.runtime.sendMessage({ type: 'STOP' });
-    $('runStructureBtn').disabled = false;
-    $('stopStructureBtn').style.display = 'none';
-    elog('已停止 AI 整理', 'warn');
+  // Extract result
+  $('copyExtractBtn').addEventListener('click', () => {
+    if (!lastExtractResult) return;
+    navigator.clipboard.writeText(lastExtractResult);
+    elog('已複製', 'success');
   });
-  $('viewTextBtn').addEventListener('click', () => {
-    $('resultTextView').style.display = '';
-    $('resultTableView').style.display = 'none';
-    $('viewTextBtn').classList.add('active');
-    $('viewTableBtn').classList.remove('active');
-  });
-  $('viewTableBtn').addEventListener('click', () => {
-    $('resultTextView').style.display = 'none';
-    $('resultTableView').style.display = '';
-    $('viewTextBtn').classList.remove('active');
-    $('viewTableBtn').classList.add('active');
-  });
-
-  // Auto-save structureTpl when user edits it in the X ETL tab
-  $('structureTpl').addEventListener('focusout', () =>
-    chrome.storage.local.set({ grokTpl: $('structureTpl').value }));
+  $('saveExtractBtn').addEventListener('click', saveExtractResult);
 
   // Distill response copy / download
   $('copyDistillBtn').addEventListener('click', () => {
@@ -179,6 +172,25 @@ function bindAll() {
     extractSeriesId = $('extractSeriesSel').value || null;
     chrome.storage.local.set({ extractSeriesId });
     renderExtractPromptList();
+  });
+
+  // Extract schema picker
+  $('extractSchemaSel').addEventListener('change', () => {
+    extractSchemaId = $('extractSchemaSel').value || null;
+    chrome.storage.local.set({ extractSchemaId });
+    updateExtractSchemaPreview();
+  });
+
+  // Distill schema picker
+  $('distillSchemaSel').addEventListener('change', () => {
+    distillSchemaId = $('distillSchemaSel').value || null;
+    chrome.storage.local.set({ distillSchemaId });
+    updateDistillSchemaPreview();
+  });
+  $('clearDistillSchemaBtn').addEventListener('click', () => {
+    distillSchemaId = null;
+    chrome.storage.local.set({ distillSchemaId });
+    renderDistillSchemaPicker();
   });
 
   // Distill
@@ -205,13 +217,6 @@ function bindAll() {
     $('charCount').textContent = $('rawText').value.length + ' 字';
   });
 
-  // Format selector
-  document.querySelectorAll('.fmt-btn').forEach(b =>
-    b.addEventListener('click', () => {
-      selectedFmt = b.dataset.fmt;
-      document.querySelectorAll('.fmt-btn').forEach(x => x.classList.toggle('active', x.dataset.fmt === selectedFmt));
-    }));
-
   // Per-tab library toggles
   ['extract','distill'].forEach(ctx => {
     $(`${ctx}LibToggle`).addEventListener('click', () => {
@@ -235,11 +240,87 @@ function bindAll() {
     });
   });
 
-  // Prompt series
-  $('addSeriesBtn').addEventListener('click', addSeries);
-  $('newSeriesName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addSeries(); } });
+  // Prompt series — new tab-bar + card pattern
   $('loadAllSeriesBtn').addEventListener('click', loadAllSeries);
-  $('addSeriesPromptBtn').addEventListener('click', addSeriesPrompt);
+  $('addSeriesBtn').addEventListener('click', addSeries);
+  $('newSeriesName').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addSeries(); }
+    if (e.key === 'Escape') { $('newSeriesBar').classList.remove('show'); $('newSeriesName').value = ''; }
+  });
+  $('cancelNewSeries').addEventListener('click', () => {
+    $('newSeriesBar').classList.remove('show');
+    $('newSeriesName').value = '';
+  });
+  $('addPromptTrigger').addEventListener('click', () => {
+    $('addPromptForm').classList.add('open');
+    $('addPromptTrigger').style.display = 'none';
+    $('newSeriesPromptName').focus();
+  });
+  $('cancelAddPrompt').addEventListener('click', closeAddForm);
+  $('confirmAddPrompt').addEventListener('click', addSeriesPrompt);
+  $('newSeriesPromptName').addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeAddForm();
+    if (e.key === 'Enter') { e.preventDefault(); $('newSeriesPromptText').focus(); }
+  });
+  $('newSeriesPromptText').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) addSeriesPrompt();
+    if (e.key === 'Escape') closeAddForm();
+  });
+
+  // Schema tab — add-row form
+  $('addSchemaTrigger').addEventListener('click', () => {
+    $('addSchemaForm').classList.add('open');
+    $('addSchemaTrigger').style.display = 'none';
+    $('newSchemaName')?.focus();
+  });
+  $('cancelAddSchema').addEventListener('click', closeAddSchemaForm);
+  $('confirmAddSchema').addEventListener('click', addSchema);
+  $('newSchemaName').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addSchema(); }
+    if (e.key === 'Escape') closeAddSchemaForm();
+  });
+  $('newSchemaInitText').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) addSchema();
+    if (e.key === 'Escape') closeAddSchemaForm();
+  });
+
+  // Schema cards — event delegation
+  $('schemaCards').addEventListener('click', e => {
+    const delBtn = e.target.closest('[data-saction="delSchema"]');
+    if (delBtn) { e.stopPropagation(); delSchema(Number(delBtn.dataset.idx)); return; }
+    const head = e.target.closest('[data-saction="toggleSchema"]');
+    if (head) {
+      const idx = Number(head.dataset.idx);
+      expandedSchemaIdx = expandedSchemaIdx === idx ? null : idx;
+      renderSchemas();
+    }
+  });
+  $('schemaCards').addEventListener('input', e => {
+    const ta = e.target.closest('[data-saction="editSchema"]');
+    if (ta) {
+      const idx = Number(ta.dataset.idx);
+      if (schemaTemplates[idx]) {
+        schemaTemplates[idx].text = ta.value;
+        chrome.storage.local.set({ schemaTemplates });
+        renderExtractSchemaPicker();
+        renderDistillSchemaPicker();
+        const foot = ta.closest('.pcard')?.querySelector('.pcard-chars');
+        if (foot) foot.textContent = ta.value.length + ' 字';
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 'px';
+      }
+    }
+    const nameInput = e.target.closest('[data-saction="renameSchema"]');
+    if (nameInput) {
+      const idx = Number(nameInput.dataset.idx);
+      if (schemaTemplates[idx]) {
+        schemaTemplates[idx].name = nameInput.value;
+        chrome.storage.local.set({ schemaTemplates });
+        renderExtractSchemaPicker();
+        renderDistillSchemaPicker();
+      }
+    }
+  });
 
   // Settings
   $('distillAutoSave').addEventListener('change', e =>
@@ -255,8 +336,6 @@ function bindAll() {
         x.classList.toggle('active', x === b));
       chrome.storage.local.set({ popupWidth: w });
     }));
-
-  // ── Event delegation (replaces inline handlers) ──────────────────────────────
 
   document.querySelectorAll('.height-btn').forEach(b =>
     b.addEventListener('click', () => {
@@ -293,14 +372,6 @@ function bindAll() {
     if (ta) editPrompt(Number(ta.dataset.idx), ta.value, false);
   });
 
-  // review table
-  $('revBody').addEventListener('focusout', e => {
-    const td = e.target.closest('[data-action="cellEdit"]');
-    if (td) cellEdit(Number(td.dataset.ri), Number(td.dataset.ci), td.innerText);
-  });
-
-
-
   // extract prompt picker
   $('extractPromptList').addEventListener('click', e => {
     const btn = e.target.closest('[data-action="addFromLib"]');
@@ -313,37 +384,17 @@ function bindAll() {
     if (btn) selectDistillPrompt(Number(btn.dataset.idx));
   });
 
-  // series list
-  $('seriesList').addEventListener('click', e => {
-    const del = e.target.closest('[data-action="delSeries"]');
-    if (del) { e.stopPropagation(); delSeries(del.dataset.sid); return; }
-    const item = e.target.closest('[data-action="selectSeries"]');
-    if (item) selectSeries(item.dataset.sid);
-  });
-
-  // series prompts list
-  $('seriesPromptsList').addEventListener('click', e => {
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    const { action, sid, idx } = btn.dataset;
-    if (action === 'loadOnePrompt')   loadOnePrompt(sid, Number(idx));
-    if (action === 'delSeriesPrompt') delSeriesPrompt(sid, Number(idx));
-  });
-  $('seriesPromptsList').addEventListener('focusout', e => {
-    const el = e.target.closest('[data-action]');
-    if (!el) return;
-    const { action, sid, idx } = el.dataset;
-    if (action === 'editSeriesPromptName') editSeriesPromptName(sid, Number(idx), el.value);
-    if (action === 'editSeriesPromptText') editSeriesPromptText(sid, Number(idx), el.value);
-  });
 }
 
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `tab-${name}`));
-  if (name === 'prompts') { renderSeries(); renderSeriesPrompts(); }
-  if (name === 'extract') { renderExtractPromptPicker(); renderExtractLibrary(); }
-  if (name === 'distill') { renderDistillPromptPicker(); renderDistillLibrary(); }
+  const actionsEl = $('topbarPromptsActions');
+  if (actionsEl) actionsEl.style.display = name === 'prompts' ? '' : 'none';
+  if (name === 'prompts') { renderTabbar(); renderCards(); }
+  if (name === 'schema')  { renderSchemas(); }
+  if (name === 'extract') { renderExtractPromptPicker(); renderExtractSchemaPicker(); renderExtractLibrary(); }
+  if (name === 'distill') { renderDistillPromptPicker(); renderDistillSchemaPicker(); renderDistillLibrary(); }
   chrome.storage.local.set({ lastTab: name });
 }
 
@@ -392,20 +443,22 @@ async function startExtract() {
     elog('請先開啟 x.com/i/grok', 'warn');
     chrome.tabs.create({ url: 'https://x.com/i/grok' }); return;
   }
+
+  // Combine prompt + schema if schema selected
+  const schema = schemaTemplates.find(s => s.id === extractSchemaId);
+  const combined = promptTexts.map(pt =>
+    schema ? pt + '\n\n' + schema.text : pt
+  );
+
   const delay = parseInt($('delayInput').value) || 35;
   await chrome.storage.local.set({ delaySeconds: delay });
-  await chrome.storage.local.remove(['rawResponses', 'pendingStructured']);
-  pendingStructured = null;
-  structuredRawText = null;
   prompts.forEach(p => p.status = 'pending');
   chrome.storage.local.set({ prompts }); renderPrompts();
-  $('grokResponseSection').style.display = 'none';
-  $('postProcessSection').style.display = 'none';
-  $('reviewSection').style.display = 'none';
-  $('grokResponseList').innerHTML = '';
+  $('extractResultSection').style.display = 'none';
+  lastExtractResult = null;
   setRunUI(true);
-  chrome.runtime.sendMessage({ type: 'START_EXTRACT', tabId: tabs[0].id, prompts: promptTexts, delaySeconds: delay });
-  elog(`開始萃取 ${promptTexts.length} 個 Prompt…`, 'info');
+  chrome.runtime.sendMessage({ type: 'START_EXTRACT', tabId: tabs[0].id, prompts: combined, delaySeconds: delay });
+  elog(`開始萃取 ${combined.length} 個 Prompt${schema ? '（含 Schema: ' + schema.name + '）' : ''}…`, 'info');
 }
 
 async function syncPromptEditsFromDom() {
@@ -419,6 +472,7 @@ async function syncPromptEditsFromDom() {
 function setRunUI(on) {
   $('startBtn').disabled = on;
   $('stopBtn').style.display = on ? '' : 'none';
+  if (on && typeof setStep === 'function') setStep(2);
 }
 
 // ── Distill ───────────────────────────────────────────────────────────────────
@@ -481,67 +535,48 @@ async function startDistill() {
   const content = $('rawText').value.trim();
   if (!content) { dlog('請先輸入或抓取內容', 'error'); return; }
 
-  // 若選了 Prompt 庫的 prompt，優先使用並送 AI
-  // Prompt 庫有選定 prompt → 優先使用，格式跟隨 selectedFmt
+  const cfg = await chrome.storage.local.get(['fullAuto']);
+
+  // Resolve template: distill prompt > schema > save as draft
+  let wikiTpl = null;
+  let fmtLabel = 'draft';
+
   if (distillSeriesId && distillPromptIdx !== null) {
     const s = series.find(x => x.id === distillSeriesId);
-    const customTpl = s?.prompts[distillPromptIdx]?.text || null;
-    if (customTpl) {
-      const cfg = await chrome.storage.local.get(['fullAuto']);
-      setDistillUI(true);
-      dlog(`送出整理（${s.prompts[distillPromptIdx].name}，目標：${distillAI}）…`, 'info');
-      chrome.runtime.sendMessage({
-        type: 'START_DISTILL',
-        content,
-        fmt: selectedFmt,
-        targetAI: distillAI,
-        wikiTpl: customTpl,
-        fullAuto: cfg.fullAuto !== false
-      });
-      return;
+    const p = s?.prompts[distillPromptIdx];
+    if (p) {
+      // If schema also selected, append schema as format hint
+      const schema = schemaTemplates.find(x => x.id === distillSchemaId);
+      wikiTpl = schema ? p.text + '\n\n' + schema.text : p.text;
+      fmtLabel = p.name;
     }
+  } else if (distillSchemaId) {
+    const schema = schemaTemplates.find(x => x.id === distillSchemaId);
+    if (schema) { wikiTpl = schema.text; fmtLabel = schema.name; }
   }
 
-  // 無 Prompt 庫選擇：依格式決定
-  const cfg = await chrome.storage.local.get(['wikiTpl', 'noteTpl', 'fullAuto']);
-
-  if (selectedFmt === 'note') {
-    if (cfg.noteTpl) {
-      // 筆記.md 有設定模板 → 送 AI 處理
-      setDistillUI(true);
-      dlog(`送出筆記整理（目標：${distillAI}）…`, 'info');
-      chrome.runtime.sendMessage({
-        type: 'START_DISTILL',
-        content,
-        fmt: 'note',
-        targetAI: distillAI,
-        wikiTpl: cfg.noteTpl,
-        fullAuto: cfg.fullAuto !== false
-      });
-    } else {
-      // 無模板 → 直接存原文
-      const ts = new Date().toISOString().slice(0,16).replace(/[:T]/g, '-');
-      const name = `note_${ts}.md`;
-      const stored = await chrome.storage.local.get(['library', 'distillFolder']);
-      const lib = stored.library || [];
-      lib.unshift({ name, fmt: 'note', content, chars: content.length, date: new Date().toLocaleDateString('zh-TW') });
-      await chrome.storage.local.set({ library: lib });
-      chrome.runtime.sendMessage({ type: 'DOWNLOAD_MD', name, content, folder: stored.distillFolder || '' });
-      renderDistillLibrary();
-      dlog(`✅ 已存為 ${name}`, 'success');
-    }
+  if (!wikiTpl) {
+    // No template: save as draft directly
+    const ts = new Date().toISOString().slice(0,16).replace(/[:T]/g, '-');
+    const name = `note_${ts}.md`;
+    const stored = await chrome.storage.local.get(['library', 'distillFolder']);
+    const lib = stored.library || [];
+    lib.unshift({ name, fmt: 'note', content, chars: content.length, date: new Date().toLocaleDateString('zh-TW') });
+    await chrome.storage.local.set({ library: lib });
+    chrome.runtime.sendMessage({ type: 'DOWNLOAD_MD', name, content, folder: stored.distillFolder || '' });
+    renderDistillLibrary();
+    dlog(`✅ 已存為 ${name}`, 'success');
     return;
   }
 
-  // wiki.md 格式
   setDistillUI(true);
-  dlog(`送出整理（wiki.md，目標：${distillAI}）…`, 'info');
+  dlog(`送出整理（${fmtLabel}，目標：${distillAI}）…`, 'info');
   chrome.runtime.sendMessage({
     type: 'START_DISTILL',
     content,
     fmt: 'wiki',
     targetAI: distillAI,
-    wikiTpl: cfg.wikiTpl,
+    wikiTpl,
     fullAuto: cfg.fullAuto !== false
   });
 }
@@ -551,40 +586,27 @@ function setDistillUI(on) {
   $('stopDistillBtn').style.display = on ? '' : 'none';
 }
 
-// ── Review ────────────────────────────────────────────────────────────────────
-function showReview(s, rawText) {
-  if (!s?.columns?.length) { $('reviewSection').style.display = 'none'; return; }
-  $('revHead').innerHTML = s.columns.map(c => `<th>${esc(c)}</th>`).join('');
-  $('revBody').innerHTML = s.rows.map((r, ri) =>
-    `<tr>${s.columns.map((c, ci) =>
-      `<td contenteditable="true" data-action="cellEdit" data-ri="${ri}" data-ci="${ci}">${esc(String(r[c]??''))}</td>`
-    ).join('')}</tr>`).join('');
-  if (rawText) {
-    $('resultText').textContent = rawText;
-    structuredRawText = rawText;
-  }
-  // Default: table view
-  $('resultTableView').style.display = '';
-  $('resultTextView').style.display = 'none';
-  $('viewTableBtn').classList.add('active');
-  $('viewTextBtn').classList.remove('active');
-  $('reviewSection').style.display = '';
+// ── Extract result ────────────────────────────────────────────────────────────
+function showExtractResult(responses) {
+  const text = responses.map((r, i) =>
+    `## #${r.index ?? i + 1}\n\n${r.response}`
+  ).join('\n\n---\n\n');
+  lastExtractResult = text;
+  $('extractResultText').textContent = text;
+  $('extractResultSection').style.display = '';
 }
-window.cellEdit = (ri, ci, v) => {
-  if (!pendingStructured) return;
-  pendingStructured.rows[ri][pendingStructured.columns[ci]] = v;
-  chrome.storage.local.set({ pendingStructured });
-};
 
-async function rejectRedo() {
-  if (!confirm('清除結果，重新整理？')) return;
-  pendingStructured = null;
-  structuredRawText = null;
-  await chrome.storage.local.remove('pendingStructured');
-  $('reviewSection').style.display = 'none';
-  $('runStructureBtn').disabled = false;
-  $('stopStructureBtn').style.display = 'none';
-  elog('已清除結果，可重新按「送 AI 整理」', 'info');
+async function saveExtractResult() {
+  if (!lastExtractResult) { elog('尚無結果可儲存', 'error'); return; }
+  const ts = new Date().toISOString().slice(0,16).replace(/[:T]/g, '-');
+  const name = `extract_${ts}.md`;
+  const stored = await chrome.storage.local.get(['library', 'extractFolder']);
+  const lib = stored.library || [];
+  lib.unshift({ name, fmt: 'extract', content: lastExtractResult, chars: lastExtractResult.length, date: new Date().toLocaleDateString('zh-TW') });
+  await chrome.storage.local.set({ library: lib });
+  chrome.runtime.sendMessage({ type: 'DOWNLOAD_MD', name, content: lastExtractResult, folder: stored.extractFolder || '' });
+  renderExtractLibrary();
+  elog(`✅ 已儲存並下載：${name}`, 'success');
 }
 
 // ── Per-tab Library ───────────────────────────────────────────────────────────
@@ -606,7 +628,7 @@ function libItemHtml(doc) {
 
 async function renderExtractLibrary() {
   const d = await chrome.storage.local.get('library');
-  const items = (d.library || []).filter(x => x.fmt === 'structured');
+  const items = (d.library || []).filter(x => x.fmt === 'extract' || x.fmt === 'structured');
   const el = $('extractLibList');
   $('extractLibCount').textContent = items.length || '';
   el.innerHTML = items.length
@@ -640,12 +662,10 @@ async function delDocByName(name) {
 // ── Settings ──────────────────────────────────────────────────────────────────
 async function saveSettings() {
   await chrome.storage.local.set({
-    fullAuto:     $('fullAutoToggle').checked,
-    autoDownload: $('autoDownload').checked,
-    wikiTpl:        $('wikiTpl').value,
-    noteTpl:        $('noteTpl').value,
-    extractFolder:  $('extractFolder').value.trim(),
-    distillFolder:  $('distillFolder').value.trim(),
+    fullAuto:      $('fullAutoToggle').checked,
+    autoDownload:  $('autoDownload').checked,
+    extractFolder: $('extractFolder').value.trim(),
+    distillFolder: $('distillFolder').value.trim(),
   });
   $('saveOk').classList.add('on');
   setTimeout(() => $('saveOk').classList.remove('on'), 2000);
@@ -669,18 +689,12 @@ function listenBg() {
 
       case 'EXTRACT_DONE':
         setRunUI(false);
-        elog('✅ 萃取完成！可在下方送 AI 整理', 'success');
-        if (msg.responses?.length) displayGrokResponses(msg.responses);
-        break;
-
-      case 'AI_STRUCTURE_DONE':
-        pendingStructured = msg.structured;
-        chrome.storage.local.set({ pendingStructured });
-        switchTab('extract');
-        showReview(msg.structured, msg.rawText);
-        elog('✅ AI 整理完成，請在下方檢視結果', 'success');
-        $('runStructureBtn').disabled = false;
-        $('stopStructureBtn').style.display = 'none';
+        if (msg.responses?.length) {
+          showExtractResult(msg.responses);
+          elog('✅ 萃取完成！請在下方儲存結果', 'success');
+        } else {
+          elog('✅ 萃取完成', 'success');
+        }
         break;
 
       case 'DISTILL_DONE':
@@ -707,56 +721,11 @@ function listenBg() {
   });
 }
 
-// ── X ETL: Post-process ───────────────────────────────────────────────────────
-async function runStructure() {
-  const d = await chrome.storage.local.get(['rawResponses', 'fullAuto']);
-  if (!d.rawResponses?.length) { elog('無萃取結果可整理', 'error'); return; }
-  const tpl = $('structureTpl').value.trim() || undefined;
-  $('runStructureBtn').disabled = true;
-  $('stopStructureBtn').style.display = '';
-  elog(`送出 AI 整理（${extractAI}）…`, 'info');
-  chrome.runtime.sendMessage({
-    type: 'RUN_AI_STRUCTURE',
-    rawResponses: d.rawResponses,
-    template: tpl,
-    targetAI: extractAI,
-    fullAuto: d.fullAuto !== false
-  });
-}
-
-function displayGrokResponses(responses) {
-  const list = $('grokResponseList');
-  list.innerHTML = responses.map(r => `
-    <div class="gr-item">
-      <div class="gr-q"><span class="gr-n">#${r.index}</span>${esc(r.prompt)}</div>
-      <div class="gr-a">${esc(r.response)}</div>
-    </div>`).join('');
-  $('grokResponseSection').style.display = '';
-  $('postProcessSection').style.display = '';
-}
-
-async function saveStructuredMd() {
-  if (!structuredRawText) { elog('無原文可儲存（尚未收到 AI 回應文字）', 'error'); return; }
-  const ts = new Date().toISOString().slice(0,16).replace(/[:T]/g, '-');
-  const name = `structured_${ts}.md`;
-  const stored = await chrome.storage.local.get(['library', 'extractFolder']);
-  const lib = stored.library || [];
-  lib.unshift({ name, fmt: 'structured', content: structuredRawText, chars: structuredRawText.length, date: new Date().toLocaleDateString('zh-TW') });
-  await chrome.storage.local.set({ library: lib });
-  chrome.runtime.sendMessage({ type: 'DOWNLOAD_MD', name, content: structuredRawText, folder: stored.extractFolder || '' });
-  renderExtractLibrary();
-  elog(`✅ 已儲存並下載：${name}`, 'success');
-}
-
 window.copyText = async txt => { await navigator.clipboard.writeText(txt); dlog('已複製', 'success'); };
 
 // ── Logging ───────────────────────────────────────────────────────────────────
 function elog(t, l='info') { appendLog('extractLog', t, l); }
 function dlog(t, l='info') { appendLog('distillLog', t, l); }
-function revlog(t, l='info') {
-  const el = $('revLog'); el.style.display='';
-  appendLog('revLog', t, l);
-}
 function appendLog(id, t, l) {
   const el = $(id);
   const d = document.createElement('div');
@@ -841,36 +810,306 @@ function updateDistillSelectedPromptArea() {
   el.removeAttribute('data-empty');
 }
 
-// ── Prompt Series ─────────────────────────────────────────────────────────────
-function renderSeries() {
-  const el = $('seriesList');
-  if (!series.length) {
-    el.innerHTML = '<div style="padding:12px;color:var(--muted);font-size:11px;text-align:center">尚無系列</div>';
+// ── Schema Templates ──────────────────────────────────────────────────────────
+function renderSchemas() {
+  const area = $('schemaCards');
+  if (!area) return;
+  if (!schemaTemplates.length) {
+    area.innerHTML = '<div class="empty-dot">尚無 Schema — 點下方「新增 Schema」建立第一個格式模板</div>';
     return;
   }
-  el.innerHTML = series.map(s => `
-    <div class="s-item ${s.id === currentSeriesId ? 'active' : ''}" data-action="selectSeries" data-sid="${s.id}">
-      <span class="s-name">${esc(s.name)}</span>
-      <span class="s-count">${s.prompts.length}</span>
-      <button class="pi-del" data-action="delSeries" data-sid="${s.id}">✕</button>
-    </div>`).join('');
+  area.innerHTML = schemaTemplates.map((s, i) => {
+    const isExp = i === expandedSchemaIdx;
+    return `
+    <div class="pcard ${isExp ? 'expanded' : ''}" id="scard-${i}">
+      <div class="pcard-head" data-saction="toggleSchema" data-idx="${i}">
+        <span class="pcard-num">#${i + 1}</span>
+        <div class="pcard-info">
+          <div class="pcard-name">${esc(s.name)}</div>
+          <div class="pcard-preview">${esc(excerpt(s.text))}</div>
+        </div>
+        <div class="pcard-head-actions">
+          <button class="btn btn-danger" data-saction="delSchema" data-idx="${i}">✕</button>
+        </div>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="pcard-body">
+        <hr class="pcard-divider">
+        <input class="schema-name-input" data-saction="renameSchema" data-idx="${i}" value="${esc(s.name)}" placeholder="Schema 名稱">
+        <textarea class="pcard-editor" data-saction="editSchema" data-idx="${i}" placeholder="Schema prompt（{{content}} 代入原始文字）">${esc(s.text)}</textarea>
+        <div class="pcard-foot">
+          <span class="pcard-chars">${s.text.length} 字</span>
+          <div class="spacer"></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // auto-grow & live char count for expanded textarea
+  if (expandedSchemaIdx !== null) {
+    const card = document.getElementById('scard-' + expandedSchemaIdx);
+    if (card) {
+      const ta = card.querySelector('.pcard-editor');
+      if (ta) {
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 'px';
+      }
+    }
+  }
 }
 
-window.selectSeries = id => {
-  currentSeriesId = id;
-  chrome.storage.local.set({ currentSeriesId });
-  renderSeries();
-  renderSeriesPrompts();
-};
+function closeAddSchemaForm() {
+  const form = $('addSchemaForm');
+  const trigger = $('addSchemaTrigger');
+  if (form) form.classList.remove('open');
+  if (trigger) trigger.style.display = '';
+  if ($('newSchemaName')) $('newSchemaName').value = '';
+  if ($('newSchemaInitText')) $('newSchemaInitText').value = '';
+}
 
-window.delSeries = async id => {
-  if (!confirm('刪除此系列？')) return;
-  series = series.filter(s => s.id !== id);
-  if (currentSeriesId === id) currentSeriesId = null;
-  await chrome.storage.local.set({ promptSeries: series });
-  renderSeries();
-  renderSeriesPrompts();
-};
+function addSchema() {
+  const name = ($('newSchemaName')?.value || '').trim();
+  const text = ($('newSchemaInitText')?.value || '').trim();
+  if (!name) { $('newSchemaName')?.focus(); return; }
+  const s = { id: crypto.randomUUID(), name, text };
+  schemaTemplates.push(s);
+  expandedSchemaIdx = schemaTemplates.length - 1;
+  chrome.storage.local.set({ schemaTemplates });
+  closeAddSchemaForm();
+  renderSchemas();
+  renderExtractSchemaPicker();
+  renderDistillSchemaPicker();
+  showToast(`已新增「${name}」`);
+}
+
+function delSchema(idx) {
+  const s = schemaTemplates[idx];
+  if (!s) return;
+  if (!confirm(`刪除 Schema「${s.name}」？`)) return;
+  const deletedId = s.id;
+  schemaTemplates.splice(idx, 1);
+  if (expandedSchemaIdx === idx) expandedSchemaIdx = null;
+  else if (expandedSchemaIdx !== null && expandedSchemaIdx > idx) expandedSchemaIdx--;
+  if (extractSchemaId === deletedId) { extractSchemaId = null; chrome.storage.local.set({ extractSchemaId }); }
+  if (distillSchemaId === deletedId) { distillSchemaId = null; chrome.storage.local.set({ distillSchemaId }); }
+  chrome.storage.local.set({ schemaTemplates });
+  renderSchemas();
+  renderExtractSchemaPicker();
+  renderDistillSchemaPicker();
+}
+
+// ── Extract Schema Picker ─────────────────────────────────────────────────────
+function renderExtractSchemaPicker() {
+  const sel = $('extractSchemaSel');
+  sel.innerHTML = '<option value="">— 選擇 Schema 格式（選填）—</option>' +
+    schemaTemplates.map(s =>
+      `<option value="${s.id}"${s.id === extractSchemaId ? ' selected' : ''}>${esc(s.name)}</option>`
+    ).join('');
+  updateExtractSchemaPreview();
+}
+
+function updateExtractSchemaPreview() {
+  const el = $('extractSchemaPreview');
+  const s = schemaTemplates.find(x => x.id === extractSchemaId);
+  if (!s) { el.textContent = ''; el.setAttribute('data-empty', '1'); return; }
+  el.textContent = s.text;
+  el.removeAttribute('data-empty');
+}
+
+// ── Distill Schema Picker ─────────────────────────────────────────────────────
+function renderDistillSchemaPicker() {
+  const sel = $('distillSchemaSel');
+  sel.innerHTML = '<option value="">— 不用 Schema，直接存草稿 —</option>' +
+    schemaTemplates.map(s =>
+      `<option value="${s.id}"${s.id === distillSchemaId ? ' selected' : ''}>${esc(s.name)}</option>`
+    ).join('');
+  updateDistillSchemaPreview();
+}
+
+function updateDistillSchemaPreview() {
+  const el = $('distillSchemaPreview');
+  const s = schemaTemplates.find(x => x.id === distillSchemaId);
+  if (!s) { el.textContent = ''; el.setAttribute('data-empty', '1'); return; }
+  el.textContent = s.text;
+  el.removeAttribute('data-empty');
+}
+
+// ── Prompt Series — tab-bar + card pattern ────────────────────────────────────
+
+function excerpt(text) {
+  const t = String(text || '').replace(/\n+/g, ' ').trim();
+  return t.length > 72 ? t.slice(0, 72) + '…' : t;
+}
+
+let toastTimer;
+function showToast(msg) {
+  const el = $('toast');
+  if (!el) return;
+  el.textContent = '✓ ' + msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function renderTabbar() {
+  const bar = $('seriesTabbar');
+  if (!bar) return;
+  bar.innerHTML = series.map(s => `
+    <button class="series-tab ${s.id === currentSeriesId ? 'active' : ''}" data-action="selectSeries" data-sid="${s.id}">
+      ${esc(s.name)}<span class="series-tab-count">${s.prompts.length}</span>
+    </button>
+  `).join('') + `<button class="tab-add-btn" id="tabAddSeriesBtn" title="新增系列">＋</button>`;
+
+  bar.querySelectorAll('.series-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      currentSeriesId = tab.dataset.sid;
+      expandedCardIdx = null;
+      chrome.storage.local.set({ currentSeriesId });
+      closeAddForm();
+      renderTabbar();
+      renderCards();
+    });
+  });
+
+  const addBtn = $('tabAddSeriesBtn');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      $('newSeriesBar').classList.add('show');
+      $('newSeriesName').focus();
+    });
+  }
+}
+
+function renderCards() {
+  const area = $('seriesCards');
+  const addRow = $('addPromptRow');
+  if (!area || !addRow) return;
+
+  const s = series.find(x => x.id === currentSeriesId);
+  if (!s) {
+    area.innerHTML = `<div class="empty-state"><div class="empty-dot"></div><div class="empty-state-text">← 選擇或新增系列</div></div>`;
+    addRow.style.display = 'none';
+    return;
+  }
+
+  addRow.style.display = '';
+
+  if (!s.prompts.length) {
+    area.innerHTML = `<div class="empty-state"><div class="empty-dot"></div><div class="empty-state-text">尚無 Prompt<br>點下方「新增 Prompt」開始</div></div>`;
+    return;
+  }
+
+  area.innerHTML = s.prompts.map((p, i) => {
+    const isExp = i === expandedCardIdx;
+    return `
+    <div class="pcard ${isExp ? 'expanded' : ''}" id="pcard-${i}">
+      <div class="pcard-head" data-idx="${i}">
+        <span class="pcard-num">#${i+1}</span>
+        <div class="pcard-info">
+          <div class="pcard-name">${esc(p.name)}</div>
+          <div class="pcard-preview">${esc(excerpt(p.text))}</div>
+        </div>
+        <div class="pcard-head-actions">
+          <button class="btn btn-primary btn-xs" data-action="loadOneCard" data-idx="${i}">▶</button>
+          <button class="btn btn-danger" data-action="delCard" data-idx="${i}">✕</button>
+        </div>
+        <span class="chevron">▾</span>
+      </div>
+      ${isExp ? `
+      <hr class="pcard-divider">
+      <textarea class="pcard-editor" data-idx="${i}">${esc(p.text)}</textarea>
+      <div class="pcard-foot">
+        <span class="pcard-chars">${p.text.length} 字</span>
+        <div class="spacer"></div>
+        <button class="btn btn-primary btn-xs" data-action="loadOneCard" data-idx="${i}">▶ 載入到 ETL</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+
+  // Toggle expand on header click
+  area.querySelectorAll('.pcard-head').forEach(head => {
+    head.addEventListener('click', e => {
+      if (e.target.closest('[data-action]')) return;
+      const idx = Number(head.dataset.idx);
+      expandedCardIdx = expandedCardIdx === idx ? null : idx;
+      renderCards();
+      requestAnimationFrame(() => {
+        const card = $(`pcard-${idx}`);
+        if (card && expandedCardIdx === idx) {
+          card.scrollIntoView({ block: 'nearest' });
+          const editor = card.querySelector('.pcard-editor');
+          if (editor) {
+            editor.style.height = 'auto';
+            editor.style.height = Math.min(editor.scrollHeight, 240) + 'px';
+            editor.focus();
+          }
+        }
+      });
+    });
+  });
+
+  // Auto-grow & save textarea
+  area.querySelectorAll('.pcard-editor').forEach(ta => {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 240) + 'px';
+    ta.addEventListener('input', () => {
+      const idx = Number(ta.dataset.idx);
+      const cur = series.find(x => x.id === currentSeriesId);
+      if (cur?.prompts[idx]) {
+        cur.prompts[idx].text = ta.value;
+        chrome.storage.local.set({ promptSeries: series });
+        const charEl = ta.closest('.pcard').querySelector('.pcard-chars');
+        if (charEl) charEl.textContent = ta.value.length + ' 字';
+        const prev = ta.closest('.pcard').querySelector('.pcard-preview');
+        if (prev) prev.textContent = excerpt(ta.value);
+      }
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(ta.scrollHeight, 240) + 'px';
+    });
+  });
+
+  // Action buttons
+  area.querySelectorAll('[data-action="loadOneCard"]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const idx = Number(btn.dataset.idx);
+      const cur = series.find(x => x.id === currentSeriesId);
+      if (!cur) return;
+      const p = cur.prompts[idx];
+      prompts.push({ text: p.text, status: 'pending' });
+      chrome.storage.local.set({ prompts });
+      switchTab('extract');
+      renderPrompts();
+      elog(`已載入「${p.name}」到萃取清單`, 'success');
+      showToast(`已載入「${p.name}」`);
+    });
+  });
+
+  area.querySelectorAll('[data-action="delCard"]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const idx = Number(btn.dataset.idx);
+      const cur = series.find(x => x.id === currentSeriesId);
+      if (!cur) return;
+      cur.prompts.splice(idx, 1);
+      if (expandedCardIdx === idx) expandedCardIdx = null;
+      else if (expandedCardIdx !== null && expandedCardIdx > idx) expandedCardIdx--;
+      chrome.storage.local.set({ promptSeries: series });
+      renderCards();
+      renderTabbar();
+    });
+  });
+}
+
+function closeAddForm() {
+  $('addPromptForm').classList.remove('open');
+  $('addPromptTrigger').style.display = '';
+  $('newSeriesPromptName').value = '';
+  $('newSeriesPromptText').value = '';
+}
+
+function renderSeries() { renderTabbar(); }
+function renderSeriesPrompts() { renderCards(); }
 
 function addSeries() {
   const name = $('newSeriesName').value.trim();
@@ -878,82 +1117,13 @@ function addSeries() {
   const s = { id: crypto.randomUUID(), name, prompts: [] };
   series.push(s);
   $('newSeriesName').value = '';
-  chrome.storage.local.set({ promptSeries: series });
+  $('newSeriesBar').classList.remove('show');
+  chrome.storage.local.set({ promptSeries: series, currentSeriesId: s.id });
   currentSeriesId = s.id;
-  renderSeries();
-  renderSeriesPrompts();
+  expandedCardIdx = null;
+  renderTabbar();
+  renderCards();
 }
-
-function renderSeriesPrompts() {
-  const header = $('seriesPromptsHeader');
-  const list   = $('seriesPromptsList');
-  const addArea = $('seriesPromptsAdd');
-  const loadAllBtn = $('loadAllSeriesBtn');
-
-  if (!currentSeriesId) {
-    header.textContent = '← 選擇系列';
-    list.innerHTML = '';
-    addArea.style.display = 'none';
-    loadAllBtn.style.display = 'none';
-    return;
-  }
-
-  const s = series.find(x => x.id === currentSeriesId);
-  if (!s) return;
-
-  header.textContent = s.name;
-  addArea.style.display = '';
-  loadAllBtn.style.display = '';
-
-  if (!s.prompts.length) {
-    list.innerHTML = '<div style="padding:12px;color:var(--muted);font-size:11px;text-align:center">尚無 Prompt，請在下方新增</div>';
-    return;
-  }
-
-  list.innerHTML = s.prompts.map((p, i) => `
-    <div class="sp-item">
-      <div class="sp-top">
-        <input class="sp-name-input" value="${esc(p.name)}"
-          data-action="editSeriesPromptName" data-sid="${s.id}" data-idx="${i}">
-        <div class="sp-acts">
-          <button class="btn btn-ghost btn-sm" data-action="loadOnePrompt"   data-sid="${s.id}" data-idx="${i}">▶ 載入</button>
-          <button class="pi-del"              data-action="delSeriesPrompt"  data-sid="${s.id}" data-idx="${i}">✕</button>
-        </div>
-      </div>
-      <textarea class="ta sp-ta" rows="2"
-        data-action="editSeriesPromptText" data-sid="${s.id}" data-idx="${i}">${esc(p.text)}</textarea>
-    </div>`).join('');
-}
-
-window.editSeriesPromptName = async (sid, idx, val) => {
-  const s = series.find(x => x.id === sid);
-  if (s) { s.prompts[idx].name = val; await chrome.storage.local.set({ promptSeries: series }); }
-};
-
-window.editSeriesPromptText = async (sid, idx, val) => {
-  const s = series.find(x => x.id === sid);
-  if (s) { s.prompts[idx].text = val; await chrome.storage.local.set({ promptSeries: series }); }
-};
-
-window.delSeriesPrompt = async (sid, idx) => {
-  const s = series.find(x => x.id === sid);
-  if (!s) return;
-  s.prompts.splice(idx, 1);
-  await chrome.storage.local.set({ promptSeries: series });
-  renderSeriesPrompts();
-  renderSeries();
-};
-
-window.loadOnePrompt = (sid, idx) => {
-  const s = series.find(x => x.id === sid);
-  if (!s) return;
-  const p = s.prompts[idx];
-  prompts.push({ text: p.text, status: 'pending' });
-  chrome.storage.local.set({ prompts });
-  switchTab('extract');
-  renderPrompts();
-  elog(`已載入「${p.name}」到萃取清單`, 'success');
-};
 
 function loadAllSeries() {
   const s = series.find(x => x.id === currentSeriesId);
@@ -963,6 +1133,7 @@ function loadAllSeries() {
   switchTab('extract');
   renderPrompts();
   elog(`已載入系列「${s.name}」共 ${s.prompts.length} 個 Prompt`, 'success');
+  showToast(`已載入 ${s.prompts.length} 個 Prompt`);
 }
 
 function addSeriesPrompt() {
@@ -972,12 +1143,22 @@ function addSeriesPrompt() {
   const s = series.find(x => x.id === currentSeriesId);
   if (!s) return;
   s.prompts.push({ id: crypto.randomUUID(), name, text });
-  $('newSeriesPromptName').value = '';
-  $('newSeriesPromptText').value = '';
+  expandedCardIdx = s.prompts.length - 1;
   chrome.storage.local.set({ promptSeries: series });
-  renderSeriesPrompts();
-  renderSeries();
+  closeAddForm();
+  renderCards();
+  renderTabbar();
+  showToast(`已新增「${name}」`);
 }
+
+window.delSeries = async id => {
+  if (!confirm('刪除此系列？')) return;
+  series = series.filter(s => s.id !== id);
+  if (currentSeriesId === id) { currentSeriesId = null; expandedCardIdx = null; }
+  await chrome.storage.local.set({ promptSeries: series, currentSeriesId });
+  renderTabbar();
+  renderCards();
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);

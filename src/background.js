@@ -2,6 +2,15 @@
 
 let stopped = false;
 
+// On service worker startup, purge any stale ai_prompt_*/ai_state_*/ai_tab_* keys
+// so cs_ai.js does not auto-inject leftover jobs from a previous session.
+chrome.storage.local.get(null).then(all => {
+  const stale = Object.keys(all).filter(k =>
+    k.startsWith('ai_prompt_') || k.startsWith('ai_state_') || k.startsWith('ai_tab_')
+  );
+  if (stale.length) chrome.storage.local.remove(stale);
+});
+
 chrome.runtime.onMessage.addListener((msg) => {
   switch (msg.type) {
     case 'START_EXTRACT':       handleExtract(msg); break;
@@ -22,6 +31,19 @@ async function handleExtract({ tabId, prompts, delaySeconds, targetAI }) {
   stopped = false;
   const responses = [];
 
+  // Bring Grok tab to foreground so user can see the interaction,
+  // then wait for the tab to finish re-rendering before injecting.
+  try { await chrome.tabs.update(tabId, { active: true }); } catch(_) {}
+  await sleep(700);
+
+  // Remove stale ai_prompt_*/ai_state_*/ai_tab_* keys to prevent cs_ai.js
+  // from auto-injecting leftover jobs from a previous session
+  const allStorage = await chrome.storage.local.get(null);
+  const staleKeys = Object.keys(allStorage).filter(k =>
+    k.startsWith('ai_prompt_') || k.startsWith('ai_state_') || k.startsWith('ai_tab_')
+  );
+  if (staleKeys.length) await chrome.storage.local.remove(staleKeys);
+
   logE(`共 ${prompts.length} 個 Prompt，等待 ${delaySeconds}s/輪`, 'info');
 
   for (let i = 0; i < prompts.length; i++) {
@@ -33,7 +55,7 @@ async function handleExtract({ tabId, prompts, delaySeconds, targetAI }) {
     try {
       await execInTab(tabId, injectToGrok, [prompts[i]]);
       logE(`等待 Grok 回應…`, 'info');
-      const resp = await pollGrok(tabId, delaySeconds * 1000);
+      const resp = await pollGrok(tabId, delaySeconds * 1000, prompts[i]);
       if (!resp) throw new Error('逾時');
       responses.push({ index: i+1, prompt: prompts[i], response: resp });
       bcast({ type: 'PROGRESS', current: i+1, total: prompts.length, promptIndex: i, status: 'done' });
@@ -90,8 +112,22 @@ function injectToGrok(text) {
       Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, text);
       el.dispatchEvent(new Event('input', { bubbles: true }));
     } else {
-      document.execCommand('selectAll', false, null);
+      // Use Selection API to explicitly select all content within the element,
+      // then insertText — more reliable than execCommand('selectAll') in React editors.
+      const sel = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      sel.removeAllRanges();
+      sel.addRange(range);
       document.execCommand('insertText', false, text);
+      // If execCommand returned false or el is still empty, fall back to innerText.
+      if (!el.innerText.trim()) {
+        el.innerText = text;
+        range.selectNodeContents(el);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
       el.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
@@ -141,14 +177,18 @@ function injectToGrok(text) {
   });
 }
 
-async function pollGrok(tabId, timeout) {
+async function pollGrok(tabId, timeout, sentText) {
   const start = Date.now(); let last = '', stable = 0;
   // Brief initial wait for Grok to start generating
   await sleep(2000);
   while (Date.now() - start < timeout) {
     if (stopped) return null;
     await sleep(1500);
-    const [r] = await chrome.scripting.executeScript({ target: { tabId }, func: getGrokText });
+    const [r] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: getGrokText,
+      args: [sentText || ''],
+    });
     const t = (r?.result || '').trim();
     if (t.length > 10) {
       if (t === last) { stable++; if (stable >= 3) return t; }
@@ -158,10 +198,16 @@ async function pollGrok(tabId, timeout) {
   return last || null;
 }
 
-function getGrokText() {
-  // The sent prompt is stored in sessionStorage so we can exclude it from detection
-  const sent = (() => { try { return sessionStorage.getItem('_ntk_sent') || ''; } catch(_) { return ''; } })();
-  const looksLikeSent = t => sent.length > 0 && t.slice(0, 80).trim() === sent.slice(0, 80).trim();
+function getGrokText(sentText) {
+  // sentText is passed directly from pollGrok; sessionStorage is kept as fallback
+  const stored = (() => { try { return sessionStorage.getItem('_ntk_sent') || ''; } catch(_) { return ''; } })();
+  const sent = sentText || stored;
+  const norm = s => s.replace(/[\s​ ]+/g, ' ').trim();
+  const looksLikeSent = t => {
+    if (!sent) return false;
+    const tN = norm(t), sN = norm(sent);
+    return tN.slice(0, 100) === sN.slice(0, 100);
+  };
 
   // Priority selectors for Grok/X response containers
   const primarySels = [

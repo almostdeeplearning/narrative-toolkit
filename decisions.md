@@ -181,3 +181,45 @@
 - **Reason:** 專案包含 Chrome Extension 原始碼，也會產生本機 markdown 輸出與可能的打包檔；這些內容不應與可維護的產品原始碼混在一起提交。
 - **Alternatives considered:** 不建立忽略規則直接提交全部內容；只依靠手動 `git add` 控制；在之後發現污染再清理 repository。
 - **Expected impact:** 降低意外提交私人資料或產物的風險，讓 GitHub repository 更乾淨，也更適合作為後續協作與備份基礎。
+
+## Decision 25
+- **Decision:** 移除 X ETL 的 AI 後結構化步驟，改以 Prompt+Schema 在注入前合併的方式取代。
+- **Date:** 2026-05-01
+- **Reason:** 原有流程在 Grok 回應後再送至第二個 AI 做結構化整理，增加了一個不穩定的非同步步驟與額外等待時間；使用者期望的是能預先指定輸出格式，並在一次 Grok 對話中就取得已格式化的結果。
+- **Alternatives considered:** 保留後結構化步驟但允許跳過；讓使用者在 Grok 回應後手動貼至另一個 AI 整理；在 background 自動串接兩個 AI 呼叫。
+- **Expected impact:** 簡化 X ETL 為三個線性步驟（選擇 → 萃取 → 儲存），去除不必要的 AI 往返，結果更可預期，也降低整體出錯機率。
+
+## Decision 26
+- **Decision:** 新增 Schema 為獨立的第五個 Tab，作為格式模板的主要管理介面。
+- **Date:** 2026-05-01
+- **Reason:** 格式模板在 X ETL 與長文整理兩個工作流中都是共用的核心資源；若放在 Settings 會讓模板管理與系統設定混在一起，也無法提供足夠的編輯空間。
+- **Alternatives considered:** 在 Settings Tab 中加入模板編輯區；在每個工作流 Tab 各自維護獨立的格式模板；改為從外部 JSON 匯入模板。
+- **Expected impact:** 模板管理有獨立入口，使用者可在不影響工作流 Tab 的情況下新增、修改、刪除格式模板；兩個工作流 Tab 共享同一份模板庫，不需要各自維護。
+
+## Decision 27
+- **Decision:** 舊有格式模板 key（grokTpl / noteTpl / wikiTpl）以首次載入遷移方式整合至 schemaTemplates，遷移後舊 key 不再主動讀寫。
+- **Date:** 2026-05-01
+- **Reason:** 現有使用者的 storage 中可能已有自訂的 grokTpl / wikiTpl / noteTpl；若直接廢棄會導致資料遺失；若同時維護兩套資料結構則會造成長期同步負擔。
+- **Alternatives considered:** 永久保留舊 key 並雙向同步；要求使用者手動重新輸入模板；在 Settings 加入一鍵遷移按鈕。
+- **Expected impact:** 現有使用者的自訂模板在第一次開啟新版本時自動被納入 Schema 庫，不需要任何手動操作；舊 key 在遷移後自然廢用，不佔用主動讀寫路徑。
+
+## Decision 28
+- **Decision:** 以可展開 Card 取代分欄式 List-Detail（左側清單 + 右側編輯區）版面，作為 Prompts 與 Schema 兩個內容管理 Tab 的統一 UI 模式。
+- **Date:** 2026-05-01
+- **Reason:** 分欄版面在 Popup 固定寬度下兩欄都過窄，左側清單難以顯示完整名稱，右側編輯區也無足夠空間；可展開 Card 讓每筆項目在需要時才佔用完整寬度，平時保持緊湊。
+- **Alternatives considered:** 保留分欄但調整比例；點選後以 Modal / 彈出層開啟編輯；改用全頁覆蓋式編輯頁面。
+- **Expected impact:** 所有 Prompt 與 Schema 的名稱與預覽在同一捲動區中一目了然，選中項目後可 inline 編輯而不需要切換畫面，也不需要左右分欄各自捲動。
+
+## Decision 29
+- **Decision:** Prompt Manager 改用水平 Series Tab Bar 取代原本的左側欄系列清單，使系列切換與 Prompt Card 列表在同一視覺軸線上操作。
+- **Date:** 2026-05-01
+- **Reason:** 原左側欄系列清單佔用固定水平空間，與右側 Prompt 清單造成雙軸捲動問題；水平 Tab Bar 符合使用者在多個系列之間快速切換的心智模型，且釋放出完整垂直空間給 Prompt Card 列表。
+- **Alternatives considered:** 保留左側欄但縮小寬度；以下拉選單取代系列清單；讓系列清單與 Prompt 清單同在一個垂直捲動區。
+- **Expected impact:** 系列切換動作從「點選清單項目」改為「點選頂部 Tab」，視覺層次更清晰；Prompt Card 列表取得完整寬度，可展示更多資訊且不需要水平捲動。
+
+## Decision 30
+- **Decision:** 整體 UI 改採緊湊型設計語言，以側欄 44px、頂欄 44px、縮小按鈕 padding 為基準，並引入 `btn-ghost` 次要按鈕樣式。
+- **Date:** 2026-05-01
+- **Reason:** 原有介面在 Popup 有限空間內佔用過多邊距與按鈕高度，導致主要內容的可視區域偏小；工具型介面應優先保留給實際工作內容的空間，而非 chrome（邊框、工具列）本身。
+- **Alternatives considered:** 僅縮減特定區域的間距；改為抽屜式側欄以節省空間；將部分操作移至右鍵選單。
+- **Expected impact:** 在相同 Popup 尺寸下，主要工作區可視高度增加；主要操作（btn-primary）與次要操作（btn-ghost）在視覺上有清楚的層級區分，減少操作介面的視覺雜訊。
