@@ -1,0 +1,43 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local secrets and environment overrides
+.env
+.env.*
+!.env.example
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Dependencies and package-manager caches
+node_modules/
+.npm/
+.pnpm-store/
+
+# Build and packaged extension artifacts
+dist/
+build/
+out/
+*.zip
+*.crx
+*.pem
+
+# Local generated narrative outputs
+extract/
+distill/
+drafts/
+exports/
+narrative-toolkit/
+
+# Accidental shell-brace directory from old scaffolding attempts
+{icons,src}/

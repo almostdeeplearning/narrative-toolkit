@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Narrative Toolkit",
+  "version": "1.0.0",
+  "description": "Grok萃取 + 長文整理 → skill.md / wiki.md",
+  "permissions": ["storage", "scripting", "tabs", "downloads", "activeTab"],
+  "host_permissions": [
+    "https://x.com/*",
+    "https://www.threads.net/*",
+    "https://threads.net/*",
+    "https://chatgpt.com/*",
+    "https://gemini.google.com/*",
+    "https://claude.ai/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://x.com/i/grok*"],
+      "js": ["src/cs_grok.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://chatgpt.com/*"],
+      "js": ["src/cs_ai.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://gemini.google.com/*"],
+      "js": ["src/cs_ai.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://claude.ai/*"],
+      "js": ["src/cs_ai.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Narrative Toolkit"
+  }
+}

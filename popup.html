@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>Narrative Toolkit</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0a0a0a;
+  --bg2:       #111111;
+  --bg3:       #1a1a1a;
+  --line:      #222222;
+  --line2:     #2e2e2e;
+  --text:      #f0f0f0;
+  --text2:     #888888;
+  --text3:     #444444;
+  --accent:    #f0f0f0;
+  --accent-bg: rgba(240,240,240,0.06);
+  --green:     #3ecf8e;
+  --red:       #f87171;
+  --amber:     #f59e0b;
+  --blue:      #60a5fa;
+
+  --sidebar-w: 72px;
+  --popup-h:   600px;
+  --r:         6px;
+  --r2:        10px;
+
+  font-family: 'Noto Sans TC', sans-serif;
+}
+
+html {
+  background: var(--bg);
+  height: var(--popup-h);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  width: 780px;
+  height: var(--popup-h);
+  min-height: var(--popup-h);
+  max-height: var(--popup-h);
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 99px; }
+
+/* ══════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════ */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--bg2);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 0 14px;
+  gap: 0;
+}
+
+.brand-mark {
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid var(--line2);
+  border-radius: var(--r);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+.brand-mark svg { width: 14px; height: 14px; }
+
+.nav-items {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  padding: 0 6px;
+  margin-bottom: auto;
+}
+
+.nav-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 7px 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: var(--r);
+  color: var(--text3);
+  transition: color .15s, background .15s;
+  position: relative;
+}
+.nav-item:hover { color: var(--text2); background: var(--accent-bg); }
+.nav-item.active { color: var(--text); background: var(--bg3); }
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 20px;
+  background: var(--text);
+  border-radius: 0 2px 2px 0;
+}
+
+.nav-icon-mono {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+.nav-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 7px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.sidebar-bottom {
+  width: 100%;
+  padding: 0 6px;
+}
+
+/* ══════════════════════════════════════
+   MAIN CONTENT
+══════════════════════════════════════ */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Topbar */
+.topbar {
+  height: 52px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.topbar-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text2);
+}
+.topbar-title span { color: var(--text); }
+
+/* AI target pill row */
+.ai-pills {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.ai-pill {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--line2);
+  background: none;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all .15s;
+}
+.ai-pill:hover { color: var(--text2); border-color: var(--text3); }
+.ai-pill.active { color: var(--text); border-color: var(--text); background: var(--bg3); }
+
+/* Scroll area */
+.panel-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Panel visibility */
+.panel { display: none; }
+.panel.active { display: block; }
+.panel.active.panel-fill { display: flex; flex-direction: column; flex: 1; }
+
+/* ── Typography helpers ── */
+.label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 10px;
+}
+.sublabel {
+  font-size: 11px;
+  color: var(--text2);
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+/* ── Step indicator ── */
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 28px;
+}
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+.step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--line2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text3);
+  flex-shrink: 0;
+  transition: all .2s;
+}
+.step-num.active { border-color: var(--text); color: var(--text); background: var(--bg3); }
+.step-num.done { border-color: var(--green); color: var(--green); }
+.step-text {
+  font-size: 11px;
+  color: var(--text3);
+  transition: color .2s;
+}
+.step-text.active { color: var(--text2); }
+.step-text.done { color: var(--text3); }
+.step-line {
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+  margin: 0 8px;
+  max-width: 32px;
+}
+
+/* ── Section card ── */
+.section {
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: var(--r2);
+  padding: 20px;
+  margin-bottom: 12px;
+  transition: border-color .15s;
+}
+.section.active-section { border-color: var(--line2); }
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.section-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text2);
+}
+
+/* ── Form elements ── */
+.field { margin-bottom: 14px; }
+.field:last-child { margin-bottom: 0; }
+.field-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.input, .ta {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 10px 12px;
+  color: var(--text);
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 13px;
+  outline: none;
+  transition: border-color .15s;
+  line-height: 1.6;
+}
+.input:focus, .ta:focus { border-color: var(--line2); }
+.input::placeholder, .ta::placeholder { color: var(--text3); }
+.ta { resize: vertical; }
+.mono { font-family: 'DM Mono', monospace; font-size: 12px; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: var(--r);
+  border: 1px solid var(--line2);
+  background: none;
+  color: var(--text2);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.btn:hover { color: var(--text); border-color: var(--text3); }
+.btn:disabled { opacity: .3; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+.btn-primary:hover { background: #d0d0d0; border-color: #d0d0d0; color: var(--bg); }
+.btn-primary:disabled { opacity: .3; }
+
+.btn-sm { padding: 6px 11px; font-size: 9px; }
+.btn-xs { padding: 4px 8px; font-size: 9px; }
+
+.btn-danger { border-color: var(--red); color: var(--red); }
+.btn-danger:hover { background: var(--red); color: var(--bg); }
+
+.btn-success { border-color: var(--green); color: var(--green); }
+.btn-success:hover { background: var(--green); color: var(--bg); }
+
+/* ── Prompt list (ETL) ── */
+.prompt-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.prompt-empty {
+  text-align: center;
+  padding: 24px;
+  color: var(--text3);
+  font-size: 12px;
+}
+
+.prompt-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 10px 12px;
+  transition: border-color .2s;
+}
+.prompt-row:hover { border-color: var(--line2); }
+.prompt-row.running { border-color: rgba(96,165,250,.4); animation: glow-blue 1.4s infinite; }
+.prompt-row.done    { border-color: rgba(62,207,142,.3); }
+.prompt-row.error   { border-color: rgba(248,113,113,.3); }
+
+@keyframes glow-blue {
+  0%,100% { box-shadow: none; }
+  50% { box-shadow: 0 0 0 2px rgba(96,165,250,.1); }
+}
+
+.prompt-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--text3);
+  padding-top: 2px;
+  min-width: 18px;
+}
+.prompt-ta {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 12px;
+  resize: none;
+  min-height: 32px;
+  line-height: 1.6;
+}
+.prompt-status { font-size: 12px; min-width: 14px; }
+.prompt-del {
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 1px 3px;
+  border-radius: 3px;
+  transition: color .15s;
+}
+.prompt-del:hover { color: var(--red); }
+
+.pi {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 20px 24px;
+  gap: 8px;
+  align-items: start;
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 10px 12px;
+}
+.pi.running { border-color: rgba(96,165,250,.4); animation: glow-blue 1.4s infinite; }
+.pi.done { border-color: rgba(62,207,142,.3); }
+.pi.error { border-color: rgba(248,113,113,.3); }
+.pi-n {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text3);
+  padding-top: 4px;
+}
+.pi-txt {
+  width: 100%;
+  min-height: 120px;
+  max-height: 320px;
+  overflow-y: auto;
+  resize: vertical;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 12px;
+  line-height: 1.7;
+  outline: none;
+}
+.pi-ico {
+  color: var(--text3);
+  font-size: 12px;
+  padding-top: 4px;
+}
+.pi-del {
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px 3px;
+  border-radius: 3px;
+}
+.pi-del:hover { color: var(--red); }
+
+/* ── Prompt chip picker ── */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.chip {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  padding: 5px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--line2);
+  background: none;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all .15s;
+}
+.chip:hover { color: var(--text); border-color: var(--text3); }
+.chip.selected { color: var(--text); border-color: var(--text); background: var(--bg3); }
+
+/* ── Run controls ── */
+.run-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+.delay-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.delay-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); }
+.delay-input {
+  width: 52px;
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 6px 8px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  text-align: center;
+  outline: none;
+  transition: border-color .15s;
+}
+.delay-input:focus { border-color: var(--line2); }
+
+/* ── Progress ── */
+.progress { margin-top: 14px; display: none; }
+.progress.on { display: block; }
+.prog-bar { height: 2px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--text); border-radius: 99px; transition: width .35s; }
+.prog-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--text3);
+  margin-top: 5px;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ── Log strip ── */
+.log-strip {
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 8px 12px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text3);
+  min-height: 34px;
+  max-height: 72px;
+  overflow-y: auto;
+  line-height: 1.7;
+  margin-top: 10px;
+}
+.ll { display: block; }
+.ll.info    { color: var(--text3); }
+.ll.success { color: var(--green); }
+.ll.warn    { color: var(--amber); }
+.ll.error   { color: var(--red); }
+
+/* ── Grok responses ── */
+.response-list { display: flex; flex-direction: column; gap: 6px; max-height: 160px; overflow-y: auto; }
+.response-item {
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 10px 12px;
+}
+.response-q {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--text3);
+  margin-bottom: 5px;
+  line-height: 1.4;
+}
+.response-a { font-size: 11px; color: var(--text2); max-height: 48px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5; }
+
+/* ── Result table ── */
+.tbl-wrap { border: 1px solid var(--line); border-radius: var(--r); overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 11px; }
+th {
+  background: var(--bg3);
+  padding: 8px 10px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--text3);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text2);
+  vertical-align: top;
+  max-width: 160px;
+  word-break: break-all;
+}
+tr:last-child td { border-bottom: none; }
+td[contenteditable]:focus { background: var(--accent-bg); outline: none; color: var(--text); }
+
+.result-pre {
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 12px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text2);
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+/* ── Divider ── */
+.divider { border: none; border-top: 1px solid var(--line); margin: 20px 0; }
+
+/* ── Row / flex helpers ── */
+.row { display: flex; gap: 8px; align-items: center; }
+.row-between { justify-content: space-between; }
+.spacer { flex: 1; }
+
+/* ── Toggle ── */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.toggle-row:last-child { border-bottom: none; }
+.toggle-info { flex: 1; }
+.toggle-label { font-size: 12px; color: var(--text); }
+.toggle-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.toggle { position: relative; width: 32px; height: 18px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--line2);
+  border-radius: 18px;
+  cursor: pointer;
+  transition: .2s;
+}
+.toggle-track::before {
+  content: '';
+  position: absolute;
+  height: 12px;
+  width: 12px;
+  left: 3px;
+  bottom: 3px;
+  background: var(--text3);
+  border-radius: 50%;
+  transition: .2s;
+}
+input:checked + .toggle-track { background: var(--text); }
+input:checked + .toggle-track::before { transform: translateX(14px); background: var(--bg); }
+
+/* ── Distill format selector ── */
+.fmt-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.fmt-card {
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.fmt-card:hover { border-color: var(--line2); }
+.fmt-card.active { border-color: var(--text2); }
+.fmt-name {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.fmt-desc { font-size: 10px; color: var(--text3); line-height: 1.4; }
+
+/* ── Prompt Manager ── */
+.pm-layout {
+  display: flex;
+  gap: 0;
+  height: 100%;
+  overflow: hidden;
+}
+.pm-sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+  padding: 20px 16px;
+  overflow: hidden;
+}
+.pm-main {
+  flex: 1;
+  min-width: 0;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.series-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: background .15s;
+  border: 1px solid transparent;
+}
+.series-item:hover { background: var(--bg3); }
+.series-item.active { background: var(--bg3); border-color: var(--line2); }
+.series-name { flex: 1; font-size: 12px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.series-item.active .series-name { color: var(--text); }
+.series-count {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--text3);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  padding: 2px 6px;
+}
+.series-del { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 12px; padding: 2px; border-radius: 2px; }
+.series-del:hover { color: var(--red); }
+
+.sp-item {
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 12px;
+  margin-bottom: 8px;
+}
+.sp-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.sp-name-input {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 12px;
+  padding: 2px 4px;
+  outline: none;
+  min-width: 0;
+  transition: border-color .15s;
+}
+.sp-name-input:focus { border-bottom-color: var(--line2); }
+
+/* ── Library items ── */
+.lib-section { margin-top: 20px; }
+.lib-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 6px 0;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text3);
+  user-select: none;
+  transition: color .15s;
+}
+.lib-toggle:hover { color: var(--text2); }
+.lib-count { background: var(--bg3); border: 1px solid var(--line); border-radius: 99px; padding: 1px 6px; }
+.lib-chevron { margin-left: auto; font-size: 10px; transition: transform .2s; }
+.lib-chevron.open { transform: rotate(180deg); }
+
+.lib-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--line);
+  transition: background .1s;
+}
+.lib-item:last-child { border-bottom: none; }
+.lib-item:hover { background: var(--accent-bg); border-radius: var(--r); }
+.lib-icon { font-size: 12px; flex-shrink: 0; }
+.lib-name { flex: 1; font-size: 11px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-date { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--text3); flex-shrink: 0; }
+.lib-acts { display: flex; gap: 3px; flex-shrink: 0; }
+
+/* ── Settings sections ── */
+.sg { margin-bottom: 28px; }
+.sg:last-child { margin-bottom: 0; }
+.sr { margin-bottom: 10px; }
+.sr label {
+  display: block;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 6px;
+}
+
+.save-ok {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--green);
+  opacity: 0;
+  transition: opacity .3s;
+}
+.save-ok.on { opacity: 1; }
+
+/* ── Width btns ── */
+.width-btn.active { border-color: var(--text); color: var(--text); background: var(--bg3); }
+.height-btn.active,
+.font-btn.active,
+.contrast-btn.active { border-color: var(--text); color: var(--text); background: var(--bg3); }
+
+body.contrast-bright {
+  --line2: #3a3a3a;
+  --text2: #b8b8b8;
+  --text3: #6f6f6f;
+  --accent-bg: rgba(240,240,240,0.09);
+}
+
+body.contrast-max {
+  --line: #303030;
+  --line2: #4a4a4a;
+  --text2: #d0d0d0;
+  --text3: #969696;
+  --accent-bg: rgba(240,240,240,0.12);
+}
+
+body.font-comfortable .input,
+body.font-comfortable .ta { font-size: 14px; }
+body.font-comfortable .prompt-ta,
+body.font-comfortable .toggle-label,
+body.font-comfortable .series-name,
+body.font-comfortable .sp-name-input { font-size: 13px; }
+body.font-comfortable .response-a,
+body.font-comfortable table,
+body.font-comfortable .toggle-sub,
+body.font-comfortable .lib-name { font-size: 12px; }
+body.font-comfortable .btn,
+body.font-comfortable .section-title,
+body.font-comfortable .label,
+body.font-comfortable .field-label,
+body.font-comfortable .log-strip,
+body.font-comfortable .result-pre { font-size: 11px; }
+
+body.font-large .input,
+body.font-large .ta { font-size: 15px; }
+body.font-large .prompt-ta,
+body.font-large .toggle-label,
+body.font-large .series-name,
+body.font-large .sp-name-input { font-size: 14px; }
+body.font-large .response-a,
+body.font-large table,
+body.font-large .toggle-sub,
+body.font-large .lib-name { font-size: 13px; }
+body.font-large .btn,
+body.font-large .section-title,
+body.font-large .label,
+body.font-large .field-label,
+body.font-large .log-strip,
+body.font-large .result-pre { font-size: 12px; }
+body.font-large .nav-label { font-size: 8px; }
+body.font-large .nav-icon-mono { font-size: 11px; }
+
+/* ── Distill selected prompt ── */
+.selected-prompt-preview {
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 10px 12px;
+  margin-top: 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text3);
+  max-height: 72px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+.selected-prompt-preview[data-empty]::before {
+  content: 'No prompt selected';
+  font-style: italic;
+  color: var(--text3);
+}
+
+/* ── Inline char counter ── */
+.char-count {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--text3);
+}
+
+/* ── View toggle ── */
+.view-toggle-btn.active { border-color: var(--text2); color: var(--text2); }
+
+/* ── Empty state ── */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text3);
+}
+.empty-state-icon { font-size: 24px; margin-bottom: 12px; opacity: .4; }
+.empty-state-text { font-size: 12px; line-height: 1.6; }
+
+/* ── Distill response section ── */
+#distillResponseSection { margin-top: 0; }
+
+/* ── Badge dot ── */
+.badge-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--amber);
+  margin-left: 4px;
+  vertical-align: middle;
+}
+</style>
+</head>
+<body style="background-color: rgb(0, 0, 0)">
+
+<!-- ══ Sidebar ══ -->
+<aside class="sidebar">
+  <div class="brand-mark">
+    <svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="7" height="7" rx="1.5" fill="#f0f0f0" opacity=".9"/>
+      <rect x="10" y="1" width="7" height="7" rx="1.5" fill="#f0f0f0" opacity=".4"/>
+      <rect x="1" y="10" width="7" height="7" rx="1.5" fill="#f0f0f0" opacity=".4"/>
+      <rect x="10" y="10" width="7" height="7" rx="1.5" fill="#f0f0f0" opacity=".2"/>
+    </svg>
+  </div>
+
+  <div class="nav-items">
+    <button class="nav-item active" data-tab="extract">
+      <span class="nav-icon-mono">ETL</span>
+      <span class="nav-label">EXTRACT</span>
+    </button>
+
+    <button class="nav-item" data-tab="distill">
+      <span class="nav-icon-mono">DST</span>
+      <span class="nav-label">DISTILL</span>
+    </button>
+
+    <button class="nav-item" data-tab="prompts">
+      <span class="nav-icon-mono">PRM</span>
+      <span class="nav-label">PROMPTS</span>
+    </button>
+  </div>
+
+  <div class="sidebar-bottom">
+    <button class="nav-item" data-tab="settings">
+      <span class="nav-icon-mono">CFG</span>
+      <span class="nav-label">CONFIG</span>
+    </button>
+  </div>
+</aside>
+
+<!-- ══ Main ══ -->
+<div class="main">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-title" id="topbarTitle"><span>X ETL</span> — 萃取工作流</div>
+    <div class="ai-pills" id="topAiSelect" style="display:none">
+      <button class="ai-pill active" data-ai="gpt">GPT</button>
+      <button class="ai-pill" data-ai="gemini">Gemini</button>
+      <button class="ai-pill" data-ai="claude">Claude</button>
+      <button class="ai-pill" data-ai="grok">Grok</button>
+    </div>
+  </div>
+
+  <!-- Panel scroll area -->
+  <div class="panel-scroll">
+
+    <!-- ════ TAB: EXTRACT ════ -->
+    <div class="panel active" id="tab-extract">
+
+      <!-- Step indicators -->
+      <div class="steps" id="etlSteps">
+        <div class="step-item">
+          <div class="step-num active" id="sn1">1</div>
+          <div class="step-text active" id="st1">選擇 Prompt</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item">
+          <div class="step-num" id="sn2">2</div>
+          <div class="step-text" id="st2">執行萃取</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item">
+          <div class="step-num" id="sn3">3</div>
+          <div class="step-text" id="st3">送 AI 整理</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item">
+          <div class="step-num" id="sn4">4</div>
+          <div class="step-text" id="st4">核可 / 輸出</div>
+        </div>
+      </div>
+
+      <!-- Step 1: Prompt selection -->
+      <div class="section active-section" id="stepSection1">
+        <div class="section-head">
+          <div class="section-title">Step 1 — Prompt 清單</div>
+          <div class="row" style="gap:6px">
+            <select id="extractSeriesSel" class="input" style="width:160px;height:32px;font-size:11px;padding:4px 8px"></select>
+          </div>
+        </div>
+
+        <!-- Library chip picker -->
+        <div id="extractPromptList" class="chip-row" style="margin-bottom:12px"></div>
+
+        <!-- Active prompt list -->
+        <div class="prompt-stack" id="promptList">
+          <div class="prompt-empty">尚無 Prompt — 從上方選取或直接新增</div>
+        </div>
+      </div>
+
+      <!-- Step 2: Run extract -->
+      <div class="section" id="stepSection2">
+        <div class="section-head">
+          <div class="section-title">Step 2 — 執行萃取</div>
+        </div>
+        <div class="run-row">
+          <button class="btn btn-primary" id="startBtn">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M2 1.5l7 3.5-7 3.5V1.5z"/></svg>
+            開始萃取
+          </button>
+          <button class="btn btn-danger" id="stopBtn" style="display:none">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><rect x="2" y="2" width="6" height="6"/></svg>
+            停止
+          </button>
+          <div class="delay-group">
+            <span class="delay-label">等待</span>
+            <input class="delay-input" id="delayInput" type="number" value="35" min="10" max="120">
+            <span class="delay-label">秒</span>
+          </div>
+        </div>
+        <div class="progress" id="prog">
+          <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+          <div class="prog-label">
+            <span id="progTxt">0 / 0</span>
+          </div>
+        </div>
+        <div class="log-strip" id="extractLog"><span class="ll">就緒</span></div>
+      </div>
+
+      <!-- Grok responses -->
+      <div id="grokResponseSection" style="display:none">
+        <div class="section">
+          <div class="section-head">
+            <div class="section-title">Grok 萃取結果</div>
+          </div>
+          <div class="response-list" id="grokResponseList"></div>
+        </div>
+      </div>
+
+      <!-- Step 3: Send to AI -->
+      <div id="postProcessSection" style="display:none">
+        <div class="section" id="stepSection3">
+          <div class="section-head">
+            <div class="section-title">Step 3 — 送 AI 整理</div>
+            <div class="ai-pills" id="extractAiSelect">
+              <button class="ai-pill active" data-ai="gpt">GPT</button>
+              <button class="ai-pill" data-ai="gemini">Gemini</button>
+              <button class="ai-pill" data-ai="claude">Claude</button>
+              <button class="ai-pill" data-ai="grok">Grok</button>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label">整理 Prompt <span style="color:var(--text3);font-weight:400">（<code style="color:var(--blue)">{{responses}}</code> 代入，留空用預設）</span></label>
+            <textarea class="ta mono" id="structureTpl" rows="3" placeholder="留空使用預設模板"></textarea>
+          </div>
+          <div class="run-row">
+            <button class="btn btn-primary" id="runStructureBtn">送 AI 整理</button>
+            <button class="btn btn-danger" id="stopStructureBtn" style="display:none">停止</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: Review -->
+      <div id="reviewSection" style="display:none">
+        <div class="section" id="stepSection4">
+          <div class="section-head">
+            <div class="section-title">Step 4 — 檢視 &amp; 核可 <span style="color:var(--text3);font-weight:400;font-size:9px">可點格編輯</span></div>
+            <div class="row" style="gap:4px">
+              <button class="btn btn-xs view-toggle-btn" id="viewTextBtn">原文</button>
+              <button class="btn btn-xs view-toggle-btn active" id="viewTableBtn">表格</button>
+            </div>
+          </div>
+          <div id="resultTextView" style="display:none;margin-bottom:12px">
+            <pre class="result-pre" id="resultText"></pre>
+          </div>
+          <div id="resultTableView" style="margin-bottom:12px">
+            <div class="tbl-wrap">
+              <table><thead><tr id="revHead"></tr></thead><tbody id="revBody"></tbody></table>
+            </div>
+          </div>
+          <div class="row" style="gap:8px;justify-content:flex-end">
+            <button class="btn btn-sm" id="saveMdBtn">⬇ 儲存 .md</button>
+            <button class="btn btn-sm btn-danger" id="rejectBtn">↺ 重整</button>
+          </div>
+          <div class="log-strip" id="revLog" style="display:none;margin-top:10px"></div>
+        </div>
+      </div>
+
+      <!-- Recent files -->
+      <div class="lib-section">
+        <div class="lib-toggle" id="extractLibToggle">
+          <span>最近萃取</span>
+          <span class="lib-count" id="extractLibCount"></span>
+          <span class="lib-chevron" id="extractLibChevron">▾</span>
+        </div>
+        <div id="extractLibList" style="display:none;margin-top:4px"></div>
+      </div>
+    </div>
+
+    <!-- ════ TAB: DISTILL ════ -->
+    <div class="panel" id="tab-distill">
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">來源內容</div>
+          <div class="row" style="gap:8px">
+            <span class="char-count" id="charCount">0 字</span>
+            <button class="btn btn-sm" id="grabPageBtn">⊕ 抓取當前頁面</button>
+          </div>
+        </div>
+        <textarea class="ta" id="rawText" rows="6" placeholder="貼入長文，或點「抓取當前頁面」自動填入..."></textarea>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">輸出格式</div>
+          <button class="btn btn-sm" id="saveDraftBtn">💾 存草稿</button>
+        </div>
+        <div class="fmt-grid">
+          <div class="fmt-card active" data-fmt="note">
+            <div class="fmt-name">筆記.md</div>
+            <div class="fmt-desc">直接存原文，不送 AI</div>
+          </div>
+          <div class="fmt-card" data-fmt="wiki">
+            <div class="fmt-name">wiki.md</div>
+            <div class="fmt-desc">百科條目格式，送 AI 整理</div>
+          </div>
+        </div>
+
+        <!-- Prompt picker -->
+        <div class="row" style="gap:8px;margin-bottom:8px">
+          <div class="field-label" style="margin:0;white-space:nowrap">Prompt 庫</div>
+          <select id="distillSeriesSel" class="input" style="flex:1;height:30px;font-size:11px;padding:4px 8px"></select>
+          <button class="btn btn-xs" id="clearDistillPromptBtn">✕</button>
+        </div>
+        <div id="distillPromptList" class="chip-row"></div>
+        <div id="distillSelectedPromptArea" style="display:none">
+          <div class="field-label" style="margin-top:10px">已選 Prompt</div>
+          <pre class="selected-prompt-preview" id="distillSelectedPromptText" data-empty="1"></pre>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">目標 AI</div>
+          <div class="ai-pills" id="distillAiSelect">
+            <button class="ai-pill active" data-ai="gpt">GPT</button>
+            <button class="ai-pill" data-ai="gemini">Gemini</button>
+            <button class="ai-pill" data-ai="claude">Claude</button>
+            <button class="ai-pill" data-ai="grok">Grok</button>
+          </div>
+        </div>
+        <div class="run-row" style="margin-top:0">
+          <button class="btn btn-primary" id="distillBtn">✦ AI 整理並存檔</button>
+          <button class="btn btn-danger" id="stopDistillBtn" style="display:none">停止</button>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3);cursor:pointer;margin-top:12px;user-select:none">
+          <input type="checkbox" id="distillAutoSave" checked style="accent-color:var(--text);width:13px;height:13px">
+          整理完成後自動存檔並下載
+        </label>
+        <div class="log-strip" id="distillLog" style="margin-top:10px"><span class="ll">就緒</span></div>
+      </div>
+
+      <!-- Result -->
+      <div id="distillResponseSection" style="display:none">
+        <div class="section">
+          <div class="section-head">
+            <div class="section-title" id="distillResultName">整理結果</div>
+            <div class="row" style="gap:4px">
+              <button class="btn btn-xs" id="copyDistillBtn">複製</button>
+              <button class="btn btn-xs" id="dlDistillBtn">⬇ 下載</button>
+            </div>
+          </div>
+          <pre class="result-pre" id="distillResponseText" style="max-height:280px"></pre>
+        </div>
+      </div>
+
+      <!-- Recent files -->
+      <div class="lib-section">
+        <div class="lib-toggle" id="distillLibToggle">
+          <span>最近整理</span>
+          <span class="lib-count" id="distillLibCount"></span>
+          <span class="lib-chevron" id="distillLibChevron">▾</span>
+        </div>
+        <div id="distillLibList" style="display:none;margin-top:4px"></div>
+      </div>
+    </div>
+
+    <!-- ════ TAB: PROMPT MANAGER ════ -->
+    <div class="panel panel-fill" id="tab-prompts" style="margin:-24px">
+      <div class="pm-layout" style="flex:1;min-height:0">
+
+        <!-- Left: series -->
+        <div class="pm-sidebar">
+          <div class="label" style="margin-bottom:12px">系列</div>
+          <div id="seriesList" style="flex:1;overflow-y:auto;min-height:0"></div>
+          <div style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px">
+            <div class="row" style="gap:6px">
+              <input class="input" id="newSeriesName" placeholder="新系列名稱" style="flex:1;padding:8px 10px;font-size:12px">
+              <button class="btn btn-sm" id="addSeriesBtn">＋</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: prompts -->
+        <div class="pm-main">
+          <div class="row row-between" style="margin-bottom:16px">
+            <div class="label" id="seriesPromptsHeader" style="margin-bottom:0">← 選擇系列</div>
+            <button class="btn btn-sm btn-primary" id="loadAllSeriesBtn" style="display:none">▶ 全部載入</button>
+          </div>
+          <div id="seriesPromptsList" style="overflow-y:auto;max-height:320px"></div>
+          <div id="seriesPromptsAdd" style="display:none;margin-top:16px">
+            <hr class="divider" style="margin-top:0">
+            <div class="label">新增 Prompt</div>
+            <div class="field">
+              <input class="input" id="newSeriesPromptName" placeholder="名稱（例：knowledge note 產生）" style="margin-bottom:8px">
+            </div>
+            <textarea class="ta" id="newSeriesPromptText" rows="3" placeholder="Prompt 內容（{{content}} 代入文字）"></textarea>
+            <div class="row" style="margin-top:8px">
+              <button class="btn btn-sm" id="addSeriesPromptBtn">＋ 新增</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ════ TAB: SETTINGS ════ -->
+    <div class="panel" id="tab-settings">
+
+      <div class="sg">
+        <div class="label">自動化</div>
+        <div class="section">
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-label">全自動模式</div>
+              <div class="toggle-sub">Extension 自動開啟目標 AI、注入內容、抓取回應</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="fullAutoToggle" checked>
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-label">自動下載到本機</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="autoDownload" checked>
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="sg">
+        <div class="label">下載路徑</div>
+        <div class="section">
+          <div class="sr">
+            <label>X ETL 資料夾（相對於 Downloads）</label>
+            <input class="input" id="extractFolder" placeholder="narrative-toolkit/extract">
+          </div>
+          <div class="sr">
+            <label>長文整理 資料夾（相對於 Downloads）</label>
+            <input class="input" id="distillFolder" placeholder="narrative-toolkit/distill">
+          </div>
+        </div>
+      </div>
+
+      <div class="sg">
+        <div class="label">Prompt 模板</div>
+        <div class="section">
+          <div class="field">
+            <label class="field-label">筆記.md <span style="color:var(--text3)">（留空 = 直接存原文）</span></label>
+            <textarea class="ta mono" id="noteTpl" rows="3" placeholder="留空 = 直接存原文不經 AI"></textarea>
+          </div>
+          <div class="field" style="margin-top:14px">
+            <label class="field-label">wiki.md</label>
+            <textarea class="ta mono" id="wikiTpl" rows="4">請將以下原文整理成 Wikipedia 條目風格的 markdown：包含簡介段落、## 背景、## 主要內容（子節）、## 相關概念、## 參考來源。只輸出 markdown。\n\n{{content}}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="sg">
+        <div class="label">介面寬度</div>
+        <div class="row" style="gap:8px">
+          <button class="btn width-btn" data-w="500">500</button>
+          <button class="btn width-btn" data-w="640">640</button>
+          <button class="btn width-btn active" data-w="780">780</button>
+        </div>
+      </div>
+
+      <div class="sg">
+        <div class="label">視窗高度</div>
+        <div class="row" style="gap:8px">
+          <button class="btn height-btn" data-h="520">520</button>
+          <button class="btn height-btn" data-h="560">560</button>
+          <button class="btn height-btn active" data-h="600">600 最大</button>
+        </div>
+      </div>
+
+      <div class="sg">
+        <div class="label">字體大小</div>
+        <div class="row" style="gap:8px">
+          <button class="btn font-btn active" data-font="standard">標準</button>
+          <button class="btn font-btn" data-font="comfortable">舒適</button>
+          <button class="btn font-btn" data-font="large">大</button>
+        </div>
+      </div>
+
+      <div class="sg">
+        <div class="label">文字對比</div>
+        <div class="row" style="gap:8px">
+          <button class="btn contrast-btn active" data-contrast="standard">標準</button>
+          <button class="btn contrast-btn" data-contrast="bright">明亮</button>
+          <button class="btn contrast-btn" data-contrast="max">高對比</button>
+        </div>
+      </div>
+
+      <div class="row" style="justify-content:flex-end;margin-top:8px;gap:10px">
+        <span class="save-ok" id="saveOk">✓ 已儲存</span>
+        <button class="btn btn-primary btn-sm" id="saveSettingsBtn">儲存設定</button>
+      </div>
+
+    </div>
+
+  </div><!-- /panel-scroll -->
+</div><!-- /main -->
+
+<!-- Hidden fmt-btn shims for popup.js compatibility -->
+<div style="display:none" aria-hidden="true">
+  <button class="fmt-btn active" data-fmt="note"></button>
+  <button class="fmt-btn" data-fmt="wiki"></button>
+</div>
+
+<script src="src/popup.js"></script>
+<script src="src/popup-ui-patch.js"></script>
+
+</body>
+</html>
