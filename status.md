@@ -1,47 +1,39 @@
 # Status Update
 
 ## Current Focus
-- Prompts Tab 與 Schema Tab 的佈局錯誤已修正，新增按鈕與自動儲存提示均已恢復正常。
-- 下一步視使用者需求決定：ETL 強化、DST 共用 Block，或新增功能。
+- ETL Tab 已完成 UI 重設計與模組化：5 張獨立 Card（Card 01–05），風格對齊 Custom Flow。
+- 下一步：視覺確認、功能測試，或進一步強化（如 Card 03 AI 選擇接線至 startExtract）。
 
 ## Progress
 - **Side Panel 遷移完成（2026-05-03）**
 - **Distill Tab 5-Block 重構完成（2026-05-03）**
-- **Custom Flow Tab 完成並測試通過（2026-05-03）：**
-  - 5 個 Block Card（Source / Task / Format / AI / Run），各自可顯示或隱藏。
-  - 每個 Block 有獨立的延遲時間設定（下拉 + 自訂輸入），持久儲存。
-  - 「一鍵跑完全部」按序執行已顯示的 Block，套用各自延遲，並在 console 輸出完整 pipeline log。
-  - `activeDistillContext` 變數作為 background 訊息路由器，確保 Distill Tab 與 Custom Flow 不互相干擾。
-- **Grok Distill 注入修正（2026-05-03）：**
-  - `cs_ai.js` 不在 x.com 執行，原有 storage 佇列方式對 Grok 無效。
-  - `background.js` 新增 `handleDistillGrok()`，當目標 AI 為 Grok 時改用 `executeScript` + `injectToGrok` + `pollGrok` 直接注入，與 ETL 機制一致。
-  - 此修正同時適用於 Distill Tab 與 Custom Flow。
-- **Distill Block 抽檔完成（2026-05-03）：**
-  - 5 個 Block 移至 `src/blocks/*.js`，以 plain `<script>` tag 載入於 sidepanel.js 之前。
-  - sidepanel.js 不使用 ES module，行為與重構前完全一致。
-  - decisions.md 已新增 Decision 32–36。
-- **`popup.js` → `sidepanel.js` 重命名完成（2026-05-04）：**
-  - `src/popup.js` 已重命名為 `src/sidepanel.js`。
-  - `sidepanel.html`、`popup.html`、`NAV_MAP.md` 已同步更新。
-  - decisions.md 已新增 Decision 37。
-- **Prompts / Schema Tab 佈局修正（2026-05-04）：**
-  - 移除 `#tab-prompts` 與 `#tab-schema` 的 `style="margin:-24px"` 內聯樣式。
-  - 原本負 margin 導致 `cards-scroll`（`flex: 1`）溢出視窗，`add-row`（新增按鈕列）被推出可見範圍外。
-  - 移除後，Prompts Tab 的「＋ 新增 Prompt」與 Schema Tab 的「＋ 新增 Schema」按鈕均恢復正常顯示。
-  - decisions.md 已新增 Decision 38。
-- **Prompt / Schema 編輯器自動儲存提示（2026-05-04）：**
-  - 新增 `_showSaveToast()` 防抖動函數（800 ms），在使用者停止輸入後顯示「✓ 已儲存」toast。
-  - 觸發點：`renderCards()` 的 `.pcard-editor` input handler（Prompt 內容編輯）、`bindAll()` 的 `editSchema` handler（Schema 內容編輯）、`renameSchema` handler（Schema 名稱編輯）。
-  - decisions.md 已新增 Decision 39。
+- **Custom Flow Tab 完成並測試通過（2026-05-03）**
+- **Grok Distill 注入修正（2026-05-03）**
+- **Distill Block 抽檔完成（2026-05-03）**
+- **`popup.js` → `sidepanel.js` 重命名完成（2026-05-04）**
+- **Prompts / Schema Tab 佈局修正 + 自動儲存提示（2026-05-04）**
+- **ETL Tab 全面重設計（2026-05-04）：**
+  - 頂部 Topnav（水平可滾動，5 個 Tab）取代原有側邊欄。
+  - ETL Tab 改為垂直時間軸佈局（3 Step → 5 Card），字體、hover、下拉選單全面優化。
+  - `#extractPromptList` 改為 `<select>` 下拉選單 + 選後預覽區（`#extractPromptPreview`）。
+  - ETL Tab 模組化拆分：`ETLCard1–5Block.js`，各自負責一張卡片的 HTML 渲染；`initETLTab()` 在 DOMContentLoaded 最前端同步呼叫，確保 `popup-ui-patch.js` 能找到所有 DOM ID。
+  - 5 張卡片：Card 01 PROMPT、Card 02 SCHEMA、Card 03 目標 AI（新增 `#extractAiSel`）、Card 04 執行萃取、Card 05 儲存結果。
+  - 每張卡片有獨立 `etl-card-head`（標題 + 隱藏 toggle），Card 01–04 有漸變垂直連接線。
+  - `sn2`/`st2`/`sn3`/`st3` 保留為隱藏 span，`popup-ui-patch.js` 零改動。
+  - `extractAI` 狀態與 Card 03 pill 綁定，讀取 / 儲存至 `chrome.storage.local`。
 
 ## Problems
 - 若 Grok 頁面 DOM 改版，`injectToGrok` 的輸入框 selector 可能需要更新（ETL 與 Distill 共用此函數）。
 - Schema 首次遷移邏輯依賴 schemaTemplates 為空才觸發，若 storage 已有部分資料可能不會補入預設模板。
 - Custom Flow 的 Task / Format / AI Block 在「一鍵跑完全部」時僅讀取目前已選狀態，不提供錯誤提示（例如未選 Prompt 時）。
+- ETL Card 03（目標 AI）的 `#extractAiSel` 尚未接線至 `startExtract()`；`extractAI` 狀態已儲存，但實際萃取仍固定開啟 x.com/i/grok（Grok）。
+- 舊的 `ETLStep1/2/3Block.js` 仍存在於 `src/blocks/`，已不被載入，可手動刪除。
 
 ## Next Steps
-- 視需求決定下一個功能方向：ETL Tab 強化、DST 共用 Block、或 Custom Flow 進一步擴充。
-- 若未來需要，可讓 ETL 或 DST 直接使用 `src/blocks/*.js` 中的 Block 物件。
+- 瀏覽器中載入 extension 確認 ETL Tab 5 張卡片視覺與功能正常（toggle 收合、Prompt 下拉、AI pill 選擇）。
+- 選擇性：將 `startExtract()` 接線至 `extractAI`，根據選擇開啟對應 AI 頁籤。
+- 清理：手動刪除 `src/blocks/ETLStep1/2/3Block.js` 三個舊檔案。
+- 視需求繼續：Custom Flow 進一步擴充、DST 共用 Block、或新功能。
 
 ## Important Notes
 - Side Panel 固定在瀏覽器右側，寬度由使用者拖曳決定，高度等於瀏覽器視窗高度。
@@ -49,3 +41,5 @@
 - 儲存策略：本機優先，`chrome.storage.local` + 下載 markdown。無雲端同步。
 - `popup.html` 保留作為開發參考，不再被 Extension 載入。
 - Custom Flow 的 Run block 強制使用 `fullAuto: true`；Distill Tab 的 Run block 沿用 `fullAuto` storage 設定。
+- ETL Block 架構：`initETLTab()` 必須在 DOMContentLoaded 最前端（任何 `await` 之前）呼叫，確保 DOM 在 `popup-ui-patch.js` 的 `initStepState()` 執行前已建立完成。
+- ETL Card 01 的 `sn1`/`st1` 為可見 step 指示器；`sn2`/`st2`/`sn3`/`st3` 為隱藏 span，僅保留 DOM ID 相容性，`popup-ui-patch.js` 零改動。

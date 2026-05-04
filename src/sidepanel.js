@@ -39,6 +39,13 @@ const CustomFlowController = {
     if (this.isInitialized) return;
     this.isInitialized = true;
 
+    const cardsEl = $('cfCards');
+    DistillSourceBlock.renderCF(cardsEl);
+    DistillTaskBlock.renderCF(cardsEl);
+    DistillFormatBlock.renderCF(cardsEl);
+    DistillAIBlock.renderCF(cardsEl);
+    DistillRunBlock.renderCF(cardsEl);
+
     this.cardVisible = Object.assign(
       { source: true, task: true, format: true, ai: true, run: true },
       d.cfCardVisible || {}
@@ -527,8 +534,36 @@ const CustomFlowController = {
 //  END CUSTOM FLOW CONTROLLER
 // ════════════════════════════════════════════════════════════════════════════
 
+// ── ETL Tab DOM builder ───────────────────────────────────────────────────────
+function initETLTab() {
+  const etlContainer = $('etlContainer');
+  const etlSteps = document.createElement('div');
+  etlSteps.className = 'etl-flow';
+  etlSteps.id = 'etlSteps';
+  ETLCard1Block.render(etlSteps);
+  ETLCard2Block.render(etlSteps);
+  ETLCard3Block.render(etlSteps);
+  ETLCard4Block.render(etlSteps);
+  ETLCard5Block.render(etlSteps);
+  etlContainer.appendChild(etlSteps);
+  ETLCard5Block.renderLib(etlContainer);
+
+  // Card toggle (collapse/expand)
+  etlSteps.addEventListener('click', e => {
+    const btn = e.target.closest('[data-etl-toggle]');
+    if (!btn) return;
+    const card = etlSteps.querySelector(`[data-etl-card="${btn.dataset.etlToggle}"]`);
+    const body = card?.querySelector('.etl-card-body');
+    if (!body) return;
+    const hidden = body.style.display === 'none';
+    body.style.display = hidden ? '' : 'none';
+    btn.textContent = hidden ? '隱藏' : '展開';
+  });
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  initETLTab();                       // synchronous DOM build — must run before any await
   await clearLegacyCloudSettings();
   const d = await loadSettings();
 
@@ -543,6 +578,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderExtractPromptPicker();
   renderExtractSchemaPicker();
   bindAll();
+  // Apply stored extractAI to Card 03 pill buttons
+  document.querySelectorAll('#extractAiSel .ai-pill').forEach(b =>
+    b.classList.toggle('active', b.dataset.ai === extractAI));
   listenBg();
   renderExtractLibrary();
 });
@@ -683,11 +721,32 @@ function bindAll() {
     if (ta) editPrompt(Number(ta.dataset.idx), ta.value, false);
   });
 
-  // Extract prompt chip picker
-  $('extractPromptList').addEventListener('click', e => {
-    const btn = e.target.closest('[data-action="addFromLib"]');
-    if (btn) addFromLib(btn.dataset.sid, Number(btn.dataset.idx));
+  // Extract prompt dropdown picker
+  $('extractPromptList').addEventListener('change', e => {
+    const val = e.target.value;
+    const preview = $('extractPromptPreview');
+    if (!val) {
+      if (preview) { preview.textContent = ''; preview.classList.remove('visible'); }
+      return;
+    }
+    const [sid, idx] = val.split('|');
+    const s = series.find(x => x.id === sid);
+    const p = s?.prompts[Number(idx)];
+    if (p && preview) {
+      preview.textContent = p.text;
+      preview.classList.add('visible');
+    }
+    addFromLib(sid, Number(idx));
   });
+
+  // Extract AI picker (Card 03)
+  document.querySelectorAll('#extractAiSel .ai-pill').forEach(b =>
+    b.addEventListener('click', () => {
+      extractAI = b.dataset.ai;
+      document.querySelectorAll('#extractAiSel .ai-pill').forEach(x =>
+        x.classList.toggle('active', x.dataset.ai === extractAI));
+      chrome.storage.local.set({ extractAI });
+    }));
 
   // Prompt series
   $('loadAllSeriesBtn').addEventListener('click', loadAllSeries);
@@ -1018,15 +1077,21 @@ function renderExtractPromptPicker() {
 
 function renderExtractPromptList() {
   const list = $('extractPromptList');
-  if (!extractSeriesId) { list.innerHTML = ''; return; }
-  const s = series.find(x => x.id === extractSeriesId);
-  if (!s?.prompts.length) {
-    list.innerHTML = '<span style="font-size:10px;color:var(--text3)">此系列無 Prompt</span>';
+  const preview = $('extractPromptPreview');
+  if (preview) { preview.textContent = ''; preview.classList.remove('visible'); }
+  if (!extractSeriesId) {
+    list.innerHTML = '<option value="">— 選擇 Prompt —</option>';
     return;
   }
-  list.innerHTML = s.prompts.map((p, i) =>
-    `<button class="btn btn-ghost btn-sm" data-action="addFromLib" data-sid="${s.id}" data-idx="${i}" style="font-size:10px">${esc(p.name)}</button>`
-  ).join('');
+  const s = series.find(x => x.id === extractSeriesId);
+  if (!s?.prompts.length) {
+    list.innerHTML = '<option value="">此系列無 Prompt</option>';
+    return;
+  }
+  list.innerHTML = '<option value="">— 選擇 Prompt —</option>' +
+    s.prompts.map((p, i) =>
+      `<option value="${s.id}|${i}">${esc(p.name)}</option>`
+    ).join('');
 }
 
 window.addFromLib = (sid, idx) => {

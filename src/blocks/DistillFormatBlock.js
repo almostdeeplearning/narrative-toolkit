@@ -24,6 +24,38 @@ const DistillFormatBlock = {
     this._renderPicker();
   },
 
+  renderCF(container) {
+    const el = document.createElement('div');
+    el.innerHTML = `
+      <div class="cf-card" data-cf-card="format">
+        <div class="cf-card-head">
+          <span class="cf-card-num">03</span>
+          <span class="cf-card-title">FORMAT — 輸出格式</span>
+          <select class="cf-delay-sel" data-cf-delay-for="format">
+            <option value="0">無延遲</option>
+            <option value="2">2s</option>
+            <option value="5">5s</option>
+            <option value="10">10s</option>
+            <option value="20">20s</option>
+            <option value="custom">自訂</option>
+          </select>
+          <input class="cf-delay-custom" type="number" min="0" max="300" data-cf-custom-for="format" style="display:none" placeholder="秒">
+          <button class="btn btn-ghost btn-xs" data-cf-toggle="format">隱藏</button>
+        </div>
+        <div class="cf-card-body">
+          <div class="row" style="gap:8px;margin-bottom:6px">
+            <select id="cfSchemaSel" class="input" style="flex:1;height:30px;font-size:11px;padding:4px 8px">
+              <option value="">— 不用 Schema，直接存草稿 —</option>
+            </select>
+            <button class="btn btn-xs" id="cfClearSchemaBtn">✕</button>
+          </div>
+          <pre class="selected-prompt-preview" id="cfSchemaPreview" data-empty="1" style="max-height:80px;overflow:auto"></pre>
+        </div>
+      </div>
+    `.trim();
+    container.appendChild(el.firstElementChild);
+  },
+
   getSelectedSchema() {
     if (!this.schemaId) return null;
     const s = schemaTemplates.find(x => x.id === this.schemaId);

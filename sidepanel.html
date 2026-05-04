@@ -1159,13 +1159,229 @@ body.font-large .nav-icon, body.font-large .nav-icon-mono { font-size: 10px; }
 }
 .cf-card-body { padding: 14px; }
 .cf-card.cf-collapsed .cf-card-body { display: none; }
+
+/* ══════════════════════════════════════
+   TOPNAV — replaces vertical sidebar + topbar
+══════════════════════════════════════ */
+body { flex-direction: column; }
+
+.topnav {
+  height: 44px;
+  flex-shrink: 0;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+.topnav-brand {
+  width: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--line);
+}
+.topnav-brand svg { width: 14px; height: 14px; }
+
+.topnav-tabs {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  min-width: 0;
+}
+.topnav-tabs::-webkit-scrollbar { display: none; }
+
+.topnav-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--line);
+}
+
+/* Override vertical nav-item → horizontal */
+.nav-item {
+  width: auto;
+  flex-direction: row;
+  padding: 0 14px;
+  height: 100%;
+  white-space: nowrap;
+  border-radius: 0;
+  gap: 0;
+}
+.nav-item.active { background: none; }
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 2px 2px 0 0;
+}
+.nav-item.active::before { display: none; }
+.nav-label {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+}
+.nav-cfg { padding: 0 10px; border-radius: var(--r); }
+
+/* ══════════════════════════════════════
+   ETL FLOW — Vertical Timeline
+══════════════════════════════════════ */
+.etl-flow { display: flex; flex-direction: column; }
+.etl-step-group { display: flex; gap: 14px; align-items: flex-start; }
+.etl-timeline {
+  width: 28px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 1px;
+}
+.etl-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--line2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text3);
+  flex-shrink: 0;
+  transition: all .2s;
+  background: var(--bg);
+  z-index: 1;
+}
+.etl-num.active {
+  border-color: var(--text);
+  color: var(--text);
+  background: var(--bg3);
+  box-shadow: 0 0 0 3px rgba(240,240,240,.06);
+}
+.etl-num.done { border-color: var(--green); color: var(--green); }
+.etl-vline {
+  flex: 1;
+  width: 1px;
+  background: var(--line2);
+  min-height: 20px;
+  margin: 4px 0;
+}
+.etl-body { flex: 1; min-width: 0; padding-bottom: 20px; }
+.etl-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 8px;
+  padding-top: 6px;
+  transition: color .2s;
+}
+.etl-label.active { color: var(--text2); }
+.etl-label.done { color: var(--text3); }
+
+/* ══════════════════════════════════════
+   HOVER & TRANSITION EFFECTS
+══════════════════════════════════════ */
+.section { transition: border-color .2s, box-shadow .2s; }
+.section:hover { border-color: var(--line2); box-shadow: 0 4px 20px rgba(0,0,0,.4); }
+.pcard { transition: border-color .15s, box-shadow .15s; }
+.pcard:hover { border-color: var(--line2); box-shadow: 0 2px 12px rgba(0,0,0,.3); }
+.cf-card { transition: border-color .15s, box-shadow .15s; }
+.cf-card:hover { border-color: var(--line2); box-shadow: 0 2px 12px rgba(0,0,0,.3); }
+.btn { transition: background .15s, border-color .15s, color .15s, transform .1s, box-shadow .1s; }
+.btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,.35); }
+.btn:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
+
+/* ══════════════════════════════════════
+   ETL TYPOGRAPHY & FLOW REFINEMENTS
+══════════════════════════════════════ */
+/* STEP labels — larger, bolder, more breathing room */
+.etl-label {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: none;
+  margin-bottom: 14px;
+  padding-top: 2px;
+}
+/* Sub-titles inside ETL blocks */
+#tab-extract .field-label {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+/* General ETL text floor */
+#tab-extract { font-size: 12.5px; }
+/* Step circles — 32px, refined border */
+.etl-num {
+  width: 32px;
+  height: 32px;
+  font-size: 11px;
+  border-width: 1.5px;
+  flex-shrink: 0;
+}
+/* Vertical line — gradient top-bright → bottom-dim, min height */
+.etl-vline {
+  background: linear-gradient(to bottom, var(--text3) 0%, var(--line) 100%);
+  min-height: 32px;
+}
+/* Prompt series dropdown */
+.extract-prompt-sel {
+  width: 100%;
+  height: 36px;
+  font-size: 12px;
+  padding: 4px 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+/* Prompt preview below dropdown */
+.extract-prompt-preview {
+  display: none;
+  font-size: 11.5px;
+  color: var(--text2);
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  max-height: 120px;
+  overflow-y: auto;
+}
+.extract-prompt-preview.visible { display: block; }
+
+/* ── ETL card header (matches cf-card-head feel) ── */
+.etl-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.etl-card-head .etl-label {
+  flex: 1;
+  margin-bottom: 0;
+  padding-top: 0;
+}
 </style>
 </head>
 <body>
 
-<!-- ══ Sidebar ══ -->
-<aside class="sidebar">
-  <div class="brand-mark">
+<!-- ══ Top Navigation ══ -->
+<nav class="topnav">
+
+  <!-- Brand (left) -->
+  <div class="topnav-brand">
     <svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="1" y="1" width="7" height="7" rx="1.5" fill="#f0f0f0" opacity=".9"/>
       <rect x="10" y="1" width="7" height="7" rx="1.5" fill="#f0f0f0" opacity=".4"/>
@@ -1174,47 +1390,27 @@ body.font-large .nav-icon, body.font-large .nav-icon-mono { font-size: 10px; }
     </svg>
   </div>
 
-  <div class="nav-items">
+  <!-- Scrollable tab list (middle) -->
+  <div class="topnav-tabs">
     <button class="nav-item active" data-tab="extract">
-      <span class="nav-icon-mono">ETL</span>
-      <span class="nav-label">EXTRACT</span>
+      <span class="nav-label">ETL</span>
     </button>
-
     <button class="nav-item" data-tab="distill">
-      <span class="nav-icon-mono">DST</span>
       <span class="nav-label">DISTILL</span>
     </button>
-
     <button class="nav-item" data-tab="flow">
-      <span class="nav-icon-mono">FLW</span>
-      <span class="nav-label">FLOW</span>
+      <span class="nav-label">CUSTOM FLOW</span>
     </button>
-
     <button class="nav-item" data-tab="prompts">
-      <span class="nav-icon-mono">PRM</span>
       <span class="nav-label">PROMPTS</span>
     </button>
-
     <button class="nav-item" data-tab="schema">
-      <span class="nav-icon-mono">SCH</span>
       <span class="nav-label">SCHEMA</span>
     </button>
   </div>
 
-  <div class="sidebar-bottom">
-    <button class="nav-item" data-tab="settings">
-      <span class="nav-icon-mono">CFG</span>
-      <span class="nav-label">CONFIG</span>
-    </button>
-  </div>
-</aside>
-
-<!-- ══ Main ══ -->
-<div class="main">
-
-  <!-- Topbar -->
-  <div class="topbar">
-    <div class="topbar-title" id="topbarTitle"><span>X ETL</span> — 萃取工作流</div>
+  <!-- Right-side actions + settings -->
+  <div class="topnav-actions">
     <div id="topbarPromptsActions" style="display:none">
       <button class="btn btn-xs" id="loadAllSeriesBtn">▶ 全部載入</button>
     </div>
@@ -1224,111 +1420,25 @@ body.font-large .nav-icon, body.font-large .nav-icon-mono { font-size: 10px; }
       <button class="ai-pill" data-ai="claude">Claude</button>
       <button class="ai-pill" data-ai="grok">Grok</button>
     </div>
+    <button class="nav-item nav-cfg" data-tab="settings">
+      <span class="nav-label">CFG</span>
+    </button>
   </div>
+
+  <!-- Kept for JS compatibility (setActiveNav writes here) -->
+  <span id="topbarTitle" style="display:none"></span>
+
+</nav>
+
+<!-- ══ Main ══ -->
+<div class="main">
 
   <!-- Panel scroll area -->
   <div class="panel-scroll">
 
     <!-- ════ TAB: EXTRACT ════ -->
     <div class="panel active" id="tab-extract">
-
-      <!-- Step indicators -->
-      <div class="steps" id="etlSteps">
-        <div class="step-item">
-          <div class="step-num active" id="sn1">1</div>
-          <div class="step-text active" id="st1">選 Prompt &amp; Schema</div>
-        </div>
-        <div class="step-line"></div>
-        <div class="step-item">
-          <div class="step-num" id="sn2">2</div>
-          <div class="step-text" id="st2">執行萃取</div>
-        </div>
-        <div class="step-line"></div>
-        <div class="step-item">
-          <div class="step-num" id="sn3">3</div>
-          <div class="step-text" id="st3">儲存結果</div>
-        </div>
-      </div>
-
-      <!-- Step 1: Prompt selection -->
-      <div class="section active-section" id="stepSection1">
-        <div class="section-head">
-          <div class="section-title">Step 1 — Prompt 清單</div>
-          <div class="row" style="gap:6px">
-            <select id="extractSeriesSel" class="input" style="width:160px;height:32px;font-size:11px;padding:4px 8px"></select>
-          </div>
-        </div>
-
-        <!-- Library chip picker -->
-        <div id="extractPromptList" class="chip-row" style="margin-bottom:12px"></div>
-
-        <!-- Active prompt list -->
-        <div class="prompt-stack" id="promptList">
-          <div class="prompt-empty">尚無 Prompt — 從上方選取或直接新增</div>
-        </div>
-
-        <!-- Schema picker -->
-        <div style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
-          <div class="field-label" style="margin-bottom:6px">Schema 格式</div>
-          <select id="extractSchemaSel" class="input" style="width:100%;height:32px;font-size:11px;padding:4px 8px">
-            <option value="">— 選擇 Schema 格式（選填）—</option>
-          </select>
-          <pre class="selected-prompt-preview" id="extractSchemaPreview" data-empty="1" style="margin-top:6px;max-height:80px;overflow:auto"></pre>
-        </div>
-      </div>
-
-      <!-- Step 2: Run extract -->
-      <div class="section" id="stepSection2">
-        <div class="section-head">
-          <div class="section-title">Step 2 — 執行萃取</div>
-        </div>
-        <div class="run-row">
-          <button class="btn btn-primary" id="startBtn">
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M2 1.5l7 3.5-7 3.5V1.5z"/></svg>
-            開始萃取
-          </button>
-          <button class="btn btn-danger" id="stopBtn" style="display:none">
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><rect x="2" y="2" width="6" height="6"/></svg>
-            停止
-          </button>
-          <div class="delay-group">
-            <span class="delay-label">等待</span>
-            <input class="delay-input" id="delayInput" type="number" value="35" min="10" max="120">
-            <span class="delay-label">秒</span>
-          </div>
-        </div>
-        <div class="progress" id="prog">
-          <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
-          <div class="prog-label">
-            <span id="progTxt">0 / 0</span>
-          </div>
-        </div>
-        <div class="log-strip" id="extractLog"><span class="ll">就緒</span></div>
-      </div>
-
-      <!-- Step 3: Extract result -->
-      <div id="extractResultSection" style="display:none">
-        <div class="section">
-          <div class="section-head">
-            <div class="section-title">Step 3 — 萃取結果</div>
-            <div class="row" style="gap:4px">
-              <button class="btn btn-xs" id="copyExtractBtn">複製</button>
-              <button class="btn btn-xs" id="saveExtractBtn">⬇ 儲存 .md</button>
-            </div>
-          </div>
-          <pre class="result-pre" id="extractResultText" style="max-height:280px"></pre>
-        </div>
-      </div>
-
-      <!-- Recent files -->
-      <div class="lib-section">
-        <div class="lib-toggle" id="extractLibToggle">
-          <span>最近萃取</span>
-          <span class="lib-count" id="extractLibCount"></span>
-          <span class="lib-chevron" id="extractLibChevron">▾</span>
-        </div>
-        <div id="extractLibList" style="display:none;margin-top:4px"></div>
-      </div>
+      <div id="etlContainer"></div>
     </div>
 
     <!-- ════ TAB: DISTILL ════ -->
@@ -1426,149 +1536,8 @@ body.font-large .nav-icon, body.font-large .nav-icon-mono { font-size: 10px; }
         <span class="cf-run-hint">依序執行已顯示的 Block，各自套用延遲</span>
       </div>
 
-      <!-- Card 1: Source -->
-      <div class="cf-card" data-cf-card="source">
-        <div class="cf-card-head">
-          <span class="cf-card-num">01</span>
-          <span class="cf-card-title">SOURCE — 來源內容</span>
-          <select class="cf-delay-sel" data-cf-delay-for="source">
-            <option value="0">無延遲</option>
-            <option value="2">2s</option>
-            <option value="5">5s</option>
-            <option value="10">10s</option>
-            <option value="20">20s</option>
-            <option value="custom">自訂</option>
-          </select>
-          <input class="cf-delay-custom" type="number" min="0" max="300" data-cf-custom-for="source" style="display:none" placeholder="秒">
-          <button class="btn btn-ghost btn-xs" data-cf-toggle="source">隱藏</button>
-        </div>
-        <div class="cf-card-body">
-          <div class="row row-between" style="margin-bottom:8px">
-            <span class="char-count" id="cfCharCount">0 字</span>
-            <button class="btn btn-sm" id="cfGrabPageBtn">⊕ 抓取當前頁面</button>
-          </div>
-          <textarea class="ta" id="cfRawText" rows="6" placeholder="貼入長文，或點「抓取當前頁面」自動填入..."></textarea>
-        </div>
-      </div>
-
-      <!-- Card 2: Task -->
-      <div class="cf-card" data-cf-card="task">
-        <div class="cf-card-head">
-          <span class="cf-card-num">02</span>
-          <span class="cf-card-title">TASK — Prompt 任務</span>
-          <select class="cf-delay-sel" data-cf-delay-for="task">
-            <option value="0">無延遲</option>
-            <option value="2">2s</option>
-            <option value="5">5s</option>
-            <option value="10">10s</option>
-            <option value="20">20s</option>
-            <option value="custom">自訂</option>
-          </select>
-          <input class="cf-delay-custom" type="number" min="0" max="300" data-cf-custom-for="task" style="display:none" placeholder="秒">
-          <button class="btn btn-ghost btn-xs" data-cf-toggle="task">隱藏</button>
-        </div>
-        <div class="cf-card-body">
-          <div class="row" style="gap:8px;margin-bottom:8px">
-            <select id="cfSeriesSel" class="input" style="flex:1;height:30px;font-size:11px;padding:4px 8px"></select>
-            <button class="btn btn-xs" id="cfClearPromptBtn">✕</button>
-          </div>
-          <div id="cfPromptList" class="chip-row"></div>
-          <pre class="selected-prompt-preview" id="cfSelectedPromptText" data-empty="1" style="max-height:80px;overflow:auto"></pre>
-        </div>
-      </div>
-
-      <!-- Card 3: Format -->
-      <div class="cf-card" data-cf-card="format">
-        <div class="cf-card-head">
-          <span class="cf-card-num">03</span>
-          <span class="cf-card-title">FORMAT — 輸出格式</span>
-          <select class="cf-delay-sel" data-cf-delay-for="format">
-            <option value="0">無延遲</option>
-            <option value="2">2s</option>
-            <option value="5">5s</option>
-            <option value="10">10s</option>
-            <option value="20">20s</option>
-            <option value="custom">自訂</option>
-          </select>
-          <input class="cf-delay-custom" type="number" min="0" max="300" data-cf-custom-for="format" style="display:none" placeholder="秒">
-          <button class="btn btn-ghost btn-xs" data-cf-toggle="format">隱藏</button>
-        </div>
-        <div class="cf-card-body">
-          <div class="row" style="gap:8px;margin-bottom:6px">
-            <select id="cfSchemaSel" class="input" style="flex:1;height:30px;font-size:11px;padding:4px 8px">
-              <option value="">— 不用 Schema，直接存草稿 —</option>
-            </select>
-            <button class="btn btn-xs" id="cfClearSchemaBtn">✕</button>
-          </div>
-          <pre class="selected-prompt-preview" id="cfSchemaPreview" data-empty="1" style="max-height:80px;overflow:auto"></pre>
-        </div>
-      </div>
-
-      <!-- Card 4: AI -->
-      <div class="cf-card" data-cf-card="ai">
-        <div class="cf-card-head">
-          <span class="cf-card-num">04</span>
-          <span class="cf-card-title">AI — 目標 AI</span>
-          <select class="cf-delay-sel" data-cf-delay-for="ai">
-            <option value="0">無延遲</option>
-            <option value="2">2s</option>
-            <option value="5">5s</option>
-            <option value="10">10s</option>
-            <option value="20">20s</option>
-            <option value="custom">自訂</option>
-          </select>
-          <input class="cf-delay-custom" type="number" min="0" max="300" data-cf-custom-for="ai" style="display:none" placeholder="秒">
-          <button class="btn btn-ghost btn-xs" data-cf-toggle="ai">隱藏</button>
-        </div>
-        <div class="cf-card-body">
-          <div class="ai-pills" id="cfAiSelect">
-            <button class="ai-pill active" data-ai="gpt">GPT</button>
-            <button class="ai-pill" data-ai="gemini">Gemini</button>
-            <button class="ai-pill" data-ai="claude">Claude</button>
-            <button class="ai-pill" data-ai="grok">Grok</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Card 5: Run -->
-      <div class="cf-card" data-cf-card="run">
-        <div class="cf-card-head">
-          <span class="cf-card-num">05</span>
-          <span class="cf-card-title">RUN — 執行整理</span>
-          <select class="cf-delay-sel" data-cf-delay-for="run">
-            <option value="0">無延遲</option>
-            <option value="2">2s</option>
-            <option value="5">5s</option>
-            <option value="10">10s</option>
-            <option value="20">20s</option>
-            <option value="custom">自訂</option>
-          </select>
-          <input class="cf-delay-custom" type="number" min="0" max="300" data-cf-custom-for="run" style="display:none" placeholder="秒">
-          <button class="btn btn-ghost btn-xs" data-cf-toggle="run">隱藏</button>
-        </div>
-        <div class="cf-card-body">
-          <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3);cursor:pointer;margin-bottom:12px;user-select:none">
-            <input type="checkbox" id="cfAutoSave" checked style="accent-color:var(--text);width:13px;height:13px">
-            整理完成後自動存檔並下載
-          </label>
-          <div class="run-row" style="margin-top:0">
-            <button class="btn btn-primary" id="cfRunBtn">✦ 執行整理</button>
-            <button class="btn btn-danger" id="cfStopBtn" style="display:none">停止</button>
-            <button class="btn" id="cfSaveDraftBtn" style="margin-left:auto">💾 存草稿</button>
-          </div>
-          <div class="log-strip" id="cfLog" style="margin-top:10px"><span class="ll">就緒</span></div>
-          <div id="cfResultSection" style="display:none;margin-top:12px">
-            <div class="section-head" style="margin-bottom:8px">
-              <div class="section-title" id="cfResultName">整理結果</div>
-              <div class="row" style="gap:4px">
-                <button class="btn btn-xs" id="cfCopyBtn">複製</button>
-                <button class="btn btn-xs" id="cfDlBtn">⬇ 下載</button>
-              </div>
-            </div>
-            <pre class="result-pre" id="cfResultText" style="max-height:200px"></pre>
-          </div>
-        </div>
-      </div>
+      <!-- Block cards are rendered programmatically by each DistillXXXBlock.renderCF() -->
+      <div id="cfCards"></div>
 
     </div>
 
@@ -1705,6 +1674,12 @@ body.font-large .nav-icon, body.font-large .nav-icon-mono { font-size: 10px; }
 <script src="src/blocks/DistillFormatBlock.js"></script>
 <script src="src/blocks/DistillAIBlock.js"></script>
 <script src="src/blocks/DistillRunBlock.js"></script>
+<!-- ETL Blocks — must load before sidepanel.js (sidepanel.js calls initETLTab) -->
+<script src="src/blocks/ETLCard1Block.js"></script>
+<script src="src/blocks/ETLCard2Block.js"></script>
+<script src="src/blocks/ETLCard3Block.js"></script>
+<script src="src/blocks/ETLCard4Block.js"></script>
+<script src="src/blocks/ETLCard5Block.js"></script>
 <script src="src/sidepanel.js"></script>
 <script src="src/popup-ui-patch.js"></script>
 

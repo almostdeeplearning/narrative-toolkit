@@ -20,17 +20,17 @@ function setStep(n) {
     if (!num || !txt) continue;
 
     if (i < n) {
-      num.className = 'step-num done';
-      txt.className = 'step-text done';
+      num.className = 'etl-num done';
+      txt.className = 'etl-label done';
       num.textContent = '✓';
     } else if (i === n) {
-      num.className = 'step-num active';
-      txt.className = 'step-text active';
-      num.textContent = i;
+      num.className = 'etl-num active';
+      txt.className = 'etl-label active';
+      num.textContent = String(i).padStart(2, '0');
     } else {
-      num.className = 'step-num';
-      txt.className = 'step-text';
-      num.textContent = i;
+      num.className = 'etl-num';
+      txt.className = 'etl-label';
+      num.textContent = String(i).padStart(2, '0');
     }
   }
 }

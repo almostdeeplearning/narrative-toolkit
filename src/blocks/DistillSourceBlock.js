@@ -15,6 +15,36 @@ const DistillSourceBlock = {
 
   getContent() { return $('rawText').value.trim(); },
 
+  renderCF(container) {
+    const el = document.createElement('div');
+    el.innerHTML = `
+      <div class="cf-card" data-cf-card="source">
+        <div class="cf-card-head">
+          <span class="cf-card-num">01</span>
+          <span class="cf-card-title">SOURCE — 來源內容</span>
+          <select class="cf-delay-sel" data-cf-delay-for="source">
+            <option value="0">無延遲</option>
+            <option value="2">2s</option>
+            <option value="5">5s</option>
+            <option value="10">10s</option>
+            <option value="20">20s</option>
+            <option value="custom">自訂</option>
+          </select>
+          <input class="cf-delay-custom" type="number" min="0" max="300" data-cf-custom-for="source" style="display:none" placeholder="秒">
+          <button class="btn btn-ghost btn-xs" data-cf-toggle="source">隱藏</button>
+        </div>
+        <div class="cf-card-body">
+          <div class="row row-between" style="margin-bottom:8px">
+            <span class="char-count" id="cfCharCount">0 字</span>
+            <button class="btn btn-sm" id="cfGrabPageBtn">⊕ 抓取當前頁面</button>
+          </div>
+          <textarea class="ta" id="cfRawText" rows="6" placeholder="貼入長文，或點「抓取當前頁面」自動填入..."></textarea>
+        </div>
+      </div>
+    `.trim();
+    container.appendChild(el.firstElementChild);
+  },
+
   async grabPage() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab) return;

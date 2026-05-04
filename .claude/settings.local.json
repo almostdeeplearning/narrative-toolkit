@@ -3,7 +3,13 @@
     "allow": [
       "Bash(node --check src/sidepanel.js)",
       "Bash(grep -v \"^$\")",
-      "Bash(node --check \"c:\\\\Users\\\\yun16\\\\OneDrive\\\\world\\\\projects\\\\products\\\\narrative-toolkit\\\\src\\\\sidepanel.js\")"
+      "Bash(node --check \"c:\\\\Users\\\\yun16\\\\OneDrive\\\\world\\\\projects\\\\products\\\\narrative-toolkit\\\\src\\\\sidepanel.js\")",
+      "Bash(node --check src/popup-ui-patch.js)",
+      "Bash(node --check src/blocks/DistillSourceBlock.js)",
+      "Bash(node --check src/blocks/DistillTaskBlock.js)",
+      "Bash(node --check src/blocks/DistillFormatBlock.js)",
+      "Bash(node --check src/blocks/DistillAIBlock.js)",
+      "Bash(rg -n --pcre2 \"<script\\(?!\\\\s+src=\\)|\\\\s\\(on[a-zA-Z]+\\)\\\\s*=|javascript:\" sidepanel.html)"
     ],
     "additionalDirectories": [
       "c:\\Users\\yun16\\OneDrive\\world\\projects\\products\\narrative-toolkit\\src"
