@@ -5,27 +5,24 @@ const ETLCard5Block = {
   render(container) {
     const el = document.createElement('div');
     el.innerHTML = `
-      <div class="etl-step-group" data-etl-card="save">
-        <div class="etl-timeline">
-          <div class="etl-num">05</div>
+      <div class="cf-card etl-card" data-etl-card="save">
+        <div class="cf-card-head">
+          <span class="cf-card-num etl-card-num">05</span>
+          <span class="cf-card-title etl-card-title">SAVE — 儲存結果</span>
+          <button class="btn btn-ghost btn-xs" data-etl-toggle="save">隱藏</button>
         </div>
-        <div class="etl-body">
-          <div class="etl-card-head">
-            <span class="etl-label" id="st3">儲存結果</span>
-            <button class="btn btn-ghost btn-xs" data-etl-toggle="save">隱藏</button>
-          </div>
-          <div class="etl-card-body">
-            <span id="sn3" style="display:none"></span>
-            <div id="extractResultSection" style="display:none">
-              <div class="section">
-                <div class="section-head">
-                  <div class="row" style="gap:4px;margin-left:auto">
-                    <button class="btn btn-xs" id="copyExtractBtn">複製</button>
-                    <button class="btn btn-xs" id="saveExtractBtn">⬇ 儲存 .md</button>
-                  </div>
+        <div class="cf-card-body etl-card-body">
+          <span id="sn3" style="display:none"></span>
+          <span id="st3" style="display:none"></span>
+          <div id="extractResultSection" style="display:none">
+            <div class="section">
+              <div class="section-head">
+                <div class="row" style="gap:4px;margin-left:auto">
+                  <button class="btn btn-xs" id="copyExtractBtn">複製</button>
+                  <button class="btn btn-xs" id="saveExtractBtn">⬇ 儲存 .md</button>
                 </div>
-                <pre class="result-pre" id="extractResultText" style="max-height:280px"></pre>
               </div>
+              <pre class="result-pre" id="extractResultText" style="max-height:280px"></pre>
             </div>
           </div>
         </div>

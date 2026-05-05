@@ -22,6 +22,7 @@ chrome.runtime.onMessage.addListener((msg) => {
     case 'START_VERIFY_WIKI':   handleVerifyWiki(msg); break;
     case 'RUN_AI_STRUCTURE':    runAIStructure(msg); break;
     case 'DOWNLOAD_MD':         downloadMd(msg.name, msg.content, msg.folder || ''); break;
+    case 'DOWNLOAD_TEXT':       downloadText(msg.name, msg.content, msg.mime || 'text/plain;charset=utf-8', msg.folder || ''); break;
     case 'DOWNLOAD_MD_BY_NAME': downloadMdByName(msg.name); break;
     case 'AI_RESPONSE':         handleAIResponse(msg); break;
     case 'STOP':                stopped = true; break;
@@ -249,6 +250,106 @@ function getGrokText(sentText) {
   }, '');
 }
 
+function getGrokAssistantSnapshot(sentText) {
+  const stored = (() => { try { return sessionStorage.getItem('_ntk_sent') || ''; } catch(_) { return ''; } })();
+  const sent = sentText || stored;
+  const norm = s => String(s || '').replace(/[\s​ ]+/g, ' ').trim();
+  const looksLikeSent = t => {
+    if (!sent) return false;
+    const tN = norm(t), sN = norm(sent);
+    return tN.slice(0, 100) === sN.slice(0, 100);
+  };
+  const isVisible = el => {
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+
+  const selectors = [
+    '[data-testid="messageText"]',
+    'div[class*="GrokMessage"]',
+    '[data-testid="tweetText"]',
+    '[role="article"] [lang]',
+    'article [lang]',
+  ];
+  const rows = [];
+
+  for (const selector of selectors) {
+    for (const el of document.querySelectorAll(selector)) {
+      if (!isVisible(el)) continue;
+      if (el.closest('[role="textbox"], textarea, [contenteditable="true"]')) continue;
+      const text = (el.innerText || '').trim();
+      if (text.length <= 10 || looksLikeSent(text)) continue;
+      rows.push({ selector, text });
+    }
+  }
+
+  const deduped = [];
+  const seen = new Set();
+  for (const row of rows) {
+    const key = norm(row.text);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(row);
+  }
+
+  const last = deduped[deduped.length - 1] || null;
+  return {
+    count: deduped.length,
+    lastText: last?.text || '',
+    lastSelector: last?.selector || '',
+  };
+}
+
+async function pollGrokForNewAssistantStable(tabId, timeout, baseline, sentText) {
+  const start = Date.now();
+  const base = baseline || { count: 0, lastText: '' };
+  let polls = 0;
+  let foundNew = false;
+  let stableTicks = 0;
+  let lastCandidate = '';
+
+  console.log('[BG] CF Grok conservative poll: baseline count=', base.count, '| baseline chars=', base.lastText?.length ?? 0);
+
+  while (Date.now() - start < timeout) {
+    if (stopped) return null;
+    await sleep(1000);
+    polls++;
+
+    const [snapshotResult] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: getGrokAssistantSnapshot,
+      args: [sentText || ''],
+    });
+    const snap = snapshotResult?.result || { count: 0, lastText: '', lastSelector: '' };
+    const chars = snap.lastText?.length ?? 0;
+    const hasNewReply = !!snap.lastText && chars > 10 && (snap.count > base.count || snap.lastText !== base.lastText);
+
+    console.log(`[BG] CF Grok poll #${polls}: foundNew=${hasNewReply} count=${snap.count} chars=${chars} selector=${snap.lastSelector || '(none)'}`);
+
+    if (!hasNewReply) continue;
+    if (!foundNew) {
+      foundNew = true;
+      logD('Grok 已出現新回覆，確認內容穩定中…', 'info');
+    }
+
+    if (snap.lastText === lastCandidate) stableTicks++;
+    else {
+      lastCandidate = snap.lastText;
+      stableTicks = 0;
+    }
+
+    if (stableTicks >= 2) {
+      console.log(`[BG] CF Grok poll stable: polls=${polls} chars=${chars} stableTicks=${stableTicks}`);
+      logD(`Grok 回覆穩定，準備儲存（${chars} 字）`, 'info');
+      return snap.lastText;
+    }
+  }
+
+  console.warn(`[BG] CF Grok poll timeout after ${polls} polls`);
+  logD(`Grok 輪詢逾時（${polls} 次）`, 'error');
+  return null;
+}
+
 // ════════════════════════════════════════════════════════════
 //  AI STRUCTURING (Tab A: Grok → AI Chat)
 // ════════════════════════════════════════════════════════════
@@ -264,9 +365,9 @@ async function runAIStructure({ rawResponses, template, targetAI, fullAuto }) {
 // ════════════════════════════════════════════════════════════
 //  TAB B — DISTILL (long-form → skill.md / wiki.md)
 // ════════════════════════════════════════════════════════════
-async function handleDistill({ content, fmt, targetAI, wikiTpl, fullAuto }) {
+async function handleDistill({ content, fmt, targetAI, wikiTpl, fullAuto, source, autoSave }) {
   stopped = false;
-  console.log('[BG] handleDistill received: targetAI=', targetAI, '| fullAuto=', fullAuto, '| contentLen=', content?.length, '| hasTpl=', !!wikiTpl);
+  console.log('[BG] handleDistill received: targetAI=', targetAI, '| fullAuto=', fullAuto, '| source=', source || 'distill', '| autoSave=', autoSave, '| contentLen=', content?.length, '| hasTpl=', !!wikiTpl);
   const defaultWiki = `請將以下原文整理成 Wikipedia 條目風格的 markdown：包含簡介段落、## 背景、## 主要內容（子節）、## 相關概念、## 參考來源。只輸出 markdown。\n\n{{content}}`;
   const tpl = wikiTpl || defaultWiki;
   // If template has no {{content}} placeholder, append the content after the prompt
@@ -279,9 +380,14 @@ async function handleDistill({ content, fmt, targetAI, wikiTpl, fullAuto }) {
   // Grok uses direct executeScript injection (same mechanism as ETL).
   // cs_ai.js is not registered for x.com, so the normal sendToAI storage approach won't work.
   if (targetAI === 'grok') {
-    await handleDistillGrok(prompt, tag, fullAuto);
+    await handleDistillGrok(prompt, tag, fullAuto, {
+      conservativePolling: source === 'flow',
+      autoSaveOverride: typeof autoSave === 'boolean' ? autoSave : undefined,
+    });
   } else {
-    await sendToAI(prompt, targetAI, fullAuto, tag);
+    await sendToAI(prompt, targetAI, fullAuto, tag, {
+      autoSaveOverride: typeof autoSave === 'boolean' ? autoSave : undefined,
+    });
   }
 }
 
@@ -296,9 +402,11 @@ async function handleVerifyWiki({ content, targetAI, wikiTpl, fullAuto }) {
 }
 
 // ── Grok Distill: direct injection via executeScript (cs_ai.js is not on x.com) ──
-async function handleDistillGrok(prompt, tag, fullAuto) {
+async function handleDistillGrok(prompt, tag, fullAuto, opts = {}) {
+  const conservativePolling = opts.conservativePolling === true;
+  const autoSaveOverride = opts.autoSaveOverride !== false;
   logD('Grok Distill：準備開啟並注入…', 'info');
-  console.log('[BG] handleDistillGrok: fullAuto=', fullAuto, '| promptLen=', prompt.length);
+  console.log('[BG] handleDistillGrok: fullAuto=', fullAuto, '| autoSaveOverride=', autoSaveOverride, '| promptLen=', prompt.length, '| conservativePolling=', conservativePolling);
 
   if (!fullAuto) {
     chrome.tabs.create({ url: 'https://x.com/i/grok' });
@@ -321,10 +429,21 @@ async function handleDistillGrok(prompt, tag, fullAuto) {
   logD('等待 Grok 頁面載入 (3s)…', 'info');
   await sleep(3000);
 
+  let baseline = null;
+  if (conservativePolling) {
+    const [snapshotResult] = await chrome.scripting.executeScript({
+      target: { tabId: grokTab.id },
+      func: getGrokAssistantSnapshot,
+      args: [''],
+    });
+    baseline = snapshotResult?.result || { count: 0, lastText: '', lastSelector: '' };
+    console.log('[BG] handleDistillGrok: baseline assistant snapshot count =', baseline.count, '| chars =', baseline.lastText?.length ?? 0, '| selector =', baseline.lastSelector || '(none)');
+  }
+
   try {
     console.log('[BG] handleDistillGrok: injecting prompt into tab', grokTab.id);
     await execInTab(grokTab.id, injectToGrok, [prompt]);
-    logD('Grok 注入完成，等待回應 (max 35s)…', 'info');
+    logD(`Grok 注入完成，等待回應 (max ${conservativePolling ? '60' : '35'}s)…`, 'info');
     console.log('[BG] handleDistillGrok: injection done, polling…');
   } catch(e) {
     console.error('[BG] handleDistillGrok: injection failed:', e.message);
@@ -332,11 +451,13 @@ async function handleDistillGrok(prompt, tag, fullAuto) {
     return;
   }
 
-  const response = await pollGrok(grokTab.id, 35000, prompt);
+  const response = conservativePolling
+    ? await pollGrokForNewAssistantStable(grokTab.id, 60000, baseline, prompt)
+    : await pollGrok(grokTab.id, 35000, prompt);
   console.log('[BG] handleDistillGrok: pollGrok result length =', response?.length ?? 0);
 
   if (!response) {
-    bcast({ type: 'ERROR', text: 'Grok Distill 逾時 (35s)' });
+    bcast({ type: 'ERROR', text: `Grok Distill 逾時 (${conservativePolling ? '60' : '35'}s)` });
     return;
   }
 
@@ -345,9 +466,10 @@ async function handleDistillGrok(prompt, tag, fullAuto) {
   const fmt  = tag.replace('DISTILL_', '').toLowerCase();
   const ts   = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
   const name = `${fmt}_${ts}.md`;
-  const d    = await chrome.storage.local.get(['library', 'autoDownload', 'distillFolder', 'draftFolder', 'distillAutoSave']);
+  const d    = await chrome.storage.local.get(['library', 'autoDownload', 'distillFolder', 'draftFolder']);
   const lib  = d.library || [];
-  if (d.distillAutoSave !== false) {
+  const shouldAutoSave = autoSaveOverride;
+  if (shouldAutoSave) {
     if (d.autoDownload) await downloadMd(name, response, d.distillFolder || d.draftFolder || '');
     lib.unshift({ name, fmt, content: response, chars: response.length, date: new Date().toLocaleDateString('zh-TW') });
     await chrome.storage.local.set({ library: lib });
@@ -358,7 +480,7 @@ async function handleDistillGrok(prompt, tag, fullAuto) {
 // ── Pending distill results storage ──────────────────────────────────────────
 const pendingDistill = {};
 
-async function sendToAI(prompt, targetAI, fullAuto, tag) {
+async function sendToAI(prompt, targetAI, fullAuto, tag, meta = {}) {
   console.log('[BG] sendToAI: tag=', tag, '| ai=', targetAI, '| fullAuto=', fullAuto, '| promptLen=', prompt.length);
   // Store prompt for content script
   await chrome.storage.local.set({ [`ai_prompt_${tag}`]: prompt, [`ai_state_${tag}`]: 'waiting' });
@@ -380,6 +502,7 @@ async function sendToAI(prompt, targetAI, fullAuto, tag) {
   const pattern = patterns[targetAI] || patterns.gpt;
 
   if (!fullAuto) {
+    pendingDistill[tag] = { meta };
     // Semi-auto: open tab, user pastes manually; content script listens for response
     chrome.tabs.create({ url });
     logE('半自動：請手動貼入並等待回應', 'warn');
@@ -400,7 +523,7 @@ async function sendToAI(prompt, targetAI, fullAuto, tag) {
 
   // Content script will inject and capture; we wait for AI_RESPONSE message
   return new Promise(resolve => {
-    pendingDistill[tag] = resolve;
+    pendingDistill[tag] = { resolve, meta };
   });
 }
 
@@ -425,10 +548,12 @@ async function handleAIResponse({ tag, text }) {
     const ts  = new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
     const name = `${fmt}_${ts}.md`;
 
-    const d = await chrome.storage.local.get(['library','autoDownload','distillFolder','draftFolder','distillAutoSave']);
+    const d = await chrome.storage.local.get(['library','autoDownload','distillFolder','draftFolder']);
     const lib = d.library || [];
+    const pending = pendingDistill[tag];
+    const shouldAutoSave = pending?.meta?.autoSaveOverride !== false;
 
-    if (d.distillAutoSave !== false) {
+    if (shouldAutoSave) {
       if (d.autoDownload) await downloadMd(name, text, d.distillFolder || d.draftFolder || '');
       lib.unshift({ name, fmt, content: text, chars: text.length, date: new Date().toLocaleDateString('zh-TW') });
       await chrome.storage.local.set({ library: lib });
@@ -436,7 +561,10 @@ async function handleAIResponse({ tag, text }) {
 
     bcast({ type: 'DISTILL_DONE', results: [{ name, content: text, fmt }] });
 
-    if (pendingDistill[tag]) { pendingDistill[tag]({ name, content: text }); delete pendingDistill[tag]; }
+    if (pending?.resolve) {
+      pending.resolve({ name, content: text });
+      delete pendingDistill[tag];
+    }
   }
 }
 
@@ -444,10 +572,14 @@ async function handleAIResponse({ tag, text }) {
 //  .md DOWNLOAD
 // ════════════════════════════════════════════════════════════
 async function downloadMd(name, content, folder = '') {
+  return downloadText(name, content, 'text/markdown;charset=utf-8', folder);
+}
+
+async function downloadText(name, content, mime = 'text/plain;charset=utf-8', folder = '') {
   const filename = folder
     ? folder.replace(/\\/g, '/').replace(/\/$/, '') + '/' + name
     : name;
-  const url = `data:text/markdown;charset=utf-8,${encodeURIComponent(content)}`;
+  const url = `data:${mime},${encodeURIComponent(content)}`;
   await chrome.downloads.download({ url, filename, saveAs: false });
 }
 

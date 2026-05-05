@@ -27,6 +27,10 @@ let activeDistillContext = null; // 'distill' | 'flow' | null
 const CustomFlowController = {
   isInitialized: false,
   isRunning: false,
+  stopRequested: false,
+  presets: [],
+  selectedPresetId: null,
+  defaultPresetId: null,
   cardVisible:  { source: true, task: true, format: true, ai: true, run: true },
   blockDelays:  { source: 0, task: 0, format: 0, ai: 0, run: 0 },
   seriesId:  null,
@@ -50,6 +54,11 @@ const CustomFlowController = {
       { source: true, task: true, format: true, ai: true, run: true },
       d.cfCardVisible || {}
     );
+    this.presets = Array.isArray(d.customFlowPresets) ? d.customFlowPresets : [];
+    this.defaultPresetId = d.cfDefaultPresetId || null;
+    this.selectedPresetId = this.defaultPresetId && this.presets.some(p => p.id === this.defaultPresetId)
+      ? this.defaultPresetId
+      : (this.presets[0]?.id || null);
     this.seriesId  = d.cfSeriesId  || null;
     this.promptIdx = d.cfPromptIdx ?? null;
     this.schemaId  = d.cfSchemaId  || null;
@@ -68,8 +77,9 @@ const CustomFlowController = {
     // Task
     $('cfSeriesSel').addEventListener('change', () => {
       this.seriesId  = $('cfSeriesSel').value || null;
-      this.promptIdx = null;
-      chrome.storage.local.set({ cfSeriesId: this.seriesId, cfPromptIdx: null });
+      const s = series.find(x => x.id === this.seriesId);
+      this.promptIdx = s?.prompts.length ? 0 : null;
+      chrome.storage.local.set({ cfSeriesId: this.seriesId, cfPromptIdx: this.promptIdx });
       this._renderPromptList();
     });
     $('cfClearPromptBtn').addEventListener('click', () => {
@@ -78,9 +88,11 @@ const CustomFlowController = {
       chrome.storage.local.set({ cfSeriesId: null, cfPromptIdx: null });
       this._renderTaskPicker();
     });
-    $('cfPromptList').addEventListener('click', e => {
-      const btn = e.target.closest('[data-action="cfSelectPrompt"]');
-      if (btn) this._selectPrompt(Number(btn.dataset.idx));
+    $('cfPromptSel').addEventListener('change', () => {
+      const value = $('cfPromptSel').value;
+      this.promptIdx = value === '' ? null : Number(value);
+      chrome.storage.local.set({ cfPromptIdx: this.promptIdx });
+      this._renderPromptList();
     });
 
     // Format
@@ -118,26 +130,47 @@ const CustomFlowController = {
       this._log('已停止', 'warn');
     });
     $('cfSaveDraftBtn').addEventListener('click', () => this._saveDraft());
-    $('cfCopyBtn').addEventListener('click', () => {
-      if (!this.lastResult) return;
-      navigator.clipboard.writeText(this.lastResult.content);
-      this._log('已複製', 'success');
-    });
-    $('cfDlBtn').addEventListener('click', () => {
-      if (!this.lastResult) return;
-      chrome.runtime.sendMessage({ type: 'DOWNLOAD_MD', name: this.lastResult.name, content: this.lastResult.content });
-    });
+    if ($('cfCopyBtn')) {
+      $('cfCopyBtn').addEventListener('click', () => {
+        if (!this.lastResult) return;
+        navigator.clipboard.writeText(this.lastResult.content);
+        this._log('已複製', 'success');
+      });
+    }
+    if ($('cfDlBtn')) {
+      $('cfDlBtn').addEventListener('click', () => {
+        if (!this.lastResult) return;
+        chrome.runtime.sendMessage({ type: 'DOWNLOAD_MD', name: this.lastResult.name, content: this.lastResult.content });
+      });
+    }
 
     // Run-all
     $('cfRunAllBtn').addEventListener('click', () => this.runAll());
+    $('cfStopAllBtn').addEventListener('click', () => this.stopAll());
+    $('cfSavePresetBtn').addEventListener('click', () => this.savePreset());
+    $('cfPresetSel').addEventListener('change', async () => {
+      this.selectedPresetId = $('cfPresetSel').value || null;
+      await chrome.storage.local.set({ cfDefaultPresetId: this.selectedPresetId });
+      if (this.selectedPresetId) await this.loadSelectedPreset();
+      else this._renderPresetControls();
+    });
+    $('cfDeletePresetBtn').addEventListener('click', () => this.deleteSelectedPreset());
 
     // Delay selectors
     ['source', 'task', 'format', 'ai', 'run'].forEach(name =>
       this._initDelayForCard(name, d));
 
-    this._renderTaskPicker();
-    this._renderFormatPicker();
-    this._applyAllCards();
+    const defaultPreset = this._getPresetById(this.defaultPresetId);
+    if (defaultPreset) this._applyPresetConfig(defaultPreset.config, { persist: false, silent: true });
+    else {
+      this._renderTaskPicker();
+      this._renderFormatPicker();
+      this._syncAIPills();
+      this._applyDelayControls();
+      this._applyAllCards();
+      $('cfAutoSave').checked = d.cfAutoSave !== false;
+    }
+    this._renderPresetControls();
   },
 
   toggleCard(name) {
@@ -175,6 +208,181 @@ const CustomFlowController = {
 
   getAI() { return this.ai; },
 
+  _getPresetById(id) {
+    return id ? this.presets.find(p => p.id === id) || null : null;
+  },
+
+  _syncAIPills() {
+    const root = $('cfAiSelect');
+    if (!root) return;
+    root.querySelectorAll('.ai-pill').forEach(b =>
+      b.classList.toggle('active', b.dataset.ai === this.ai));
+  },
+
+  _applyDelayControls() {
+    const knownValues = ['0', '2', '5', '10', '20'];
+    ['source', 'task', 'format', 'ai', 'run'].forEach(name => {
+      const sel = document.querySelector(`[data-cf-delay-for="${name}"]`);
+      const custom = document.querySelector(`[data-cf-custom-for="${name}"]`);
+      if (!sel) return;
+      const value = this.blockDelays[name] ?? 0;
+      if (value > 0 && !knownValues.includes(String(value))) {
+        sel.value = 'custom';
+        if (custom) {
+          custom.style.display = '';
+          custom.value = value;
+        }
+      } else {
+        sel.value = String(value);
+        if (custom) custom.style.display = 'none';
+      }
+    });
+  },
+
+  _normalizePresetConfig(config) {
+    const visible = Object.assign(
+      { source: true, task: true, format: true, ai: true, run: true },
+      config?.cardVisible || {}
+    );
+    const blockDelays = Object.assign(
+      { source: 0, task: 0, format: 0, ai: 0, run: 0 },
+      config?.blockDelays || {}
+    );
+    const ai = ['gpt', 'gemini', 'claude', 'grok'].includes(config?.ai) ? config.ai : 'gpt';
+    const seriesId = typeof config?.seriesId === 'string' && series.some(x => x.id === config.seriesId)
+      ? config.seriesId
+      : null;
+    const schemaId = typeof config?.schemaId === 'string' && schemaTemplates.some(x => x.id === config.schemaId)
+      ? config.schemaId
+      : null;
+    let promptIdx = Number.isInteger(config?.promptIdx) ? config.promptIdx : null;
+    if (seriesId) {
+      const s = series.find(x => x.id === seriesId);
+      if (!s?.prompts.length) promptIdx = null;
+      else if (promptIdx === null || promptIdx < 0 || promptIdx >= s.prompts.length) promptIdx = 0;
+    } else {
+      promptIdx = null;
+    }
+    return {
+      cardVisible: visible,
+      seriesId,
+      promptIdx,
+      schemaId,
+      ai,
+      autoSave: config?.autoSave !== false,
+      blockDelays: Object.fromEntries(
+        Object.entries(blockDelays).map(([k, v]) => [k, Math.max(0, Math.min(300, Number(v) || 0))])
+      ),
+    };
+  },
+
+  _collectPresetConfig() {
+    return {
+      cardVisible: { ...this.cardVisible },
+      seriesId: this.seriesId,
+      promptIdx: this.promptIdx,
+      schemaId: this.schemaId,
+      ai: this.ai,
+      autoSave: $('cfAutoSave')?.checked !== false,
+      blockDelays: { ...this.blockDelays },
+    };
+  },
+
+  async _applyPresetConfig(config, { persist = true, silent = false } = {}) {
+    const next = this._normalizePresetConfig(config);
+    this.cardVisible = next.cardVisible;
+    this.seriesId = next.seriesId;
+    this.promptIdx = next.promptIdx;
+    this.schemaId = next.schemaId;
+    this.ai = next.ai;
+    this.blockDelays = next.blockDelays;
+    if ($('cfAutoSave')) $('cfAutoSave').checked = next.autoSave;
+    this._renderTaskPicker();
+    this._renderFormatPicker();
+    this._syncAIPills();
+    this._applyDelayControls();
+    this._applyAllCards();
+    if (persist) {
+      await chrome.storage.local.set({
+        cfCardVisible: this.cardVisible,
+        cfSeriesId: this.seriesId,
+        cfPromptIdx: this.promptIdx,
+        cfSchemaId: this.schemaId,
+        cfAI: this.ai,
+        cfAutoSave: next.autoSave,
+        cfBlockDelays: this.blockDelays,
+      });
+    }
+    if (!silent) showToast('Preset 已載入');
+  },
+
+  _renderPresetControls() {
+    const sel = $('cfPresetSel');
+    if (!sel) return;
+    if (!this.presets.length) {
+      sel.innerHTML = '<option value="">尚無 Preset</option>';
+      sel.disabled = true;
+      if ($('cfDeletePresetBtn')) $('cfDeletePresetBtn').disabled = true;
+      return;
+    }
+    if (!this.selectedPresetId || !this.presets.some(p => p.id === this.selectedPresetId)) {
+      this.selectedPresetId = this.defaultPresetId && this.presets.some(p => p.id === this.defaultPresetId)
+        ? this.defaultPresetId
+        : this.presets[0].id;
+    }
+    sel.disabled = false;
+    sel.innerHTML = this.presets.map(p => {
+      return `<option value="${p.id}"${p.id === this.selectedPresetId ? ' selected' : ''}>${esc(p.name)}</option>`;
+    }).join('');
+    if ($('cfDeletePresetBtn')) $('cfDeletePresetBtn').disabled = false;
+  },
+
+  async savePreset() {
+    const raw = window.prompt('Preset 名稱', '');
+    const name = raw?.trim();
+    if (!name) return;
+    const now = new Date().toISOString();
+    const preset = {
+      id: crypto.randomUUID(),
+      name,
+      isDefault: false,
+      createdAt: now,
+      updatedAt: now,
+      config: this._collectPresetConfig(),
+    };
+    this.presets.unshift(preset);
+    this.selectedPresetId = preset.id;
+    this.defaultPresetId = preset.id;
+    await chrome.storage.local.set({
+      customFlowPresets: this.presets,
+      cfDefaultPresetId: this.defaultPresetId,
+    });
+    this._renderPresetControls();
+    showToast(`已儲存 Preset：${name}`);
+  },
+
+  async loadSelectedPreset() {
+    const preset = this._getPresetById(this.selectedPresetId);
+    if (!preset) return;
+    await this._applyPresetConfig(preset.config);
+  },
+
+  async deleteSelectedPreset() {
+    const preset = this._getPresetById(this.selectedPresetId);
+    if (!preset) return;
+    if (!window.confirm(`刪除 Preset「${preset.name}」？`)) return;
+    this.presets = this.presets.filter(p => p.id !== preset.id);
+    if (this.defaultPresetId === preset.id) this.defaultPresetId = null;
+    this.selectedPresetId = this.presets[0]?.id || null;
+    if (!this.defaultPresetId && this.selectedPresetId) this.defaultPresetId = this.selectedPresetId;
+    await chrome.storage.local.set({
+      customFlowPresets: this.presets,
+      cfDefaultPresetId: this.defaultPresetId,
+    });
+    this._renderPresetControls();
+    showToast(`已刪除 Preset：${preset.name}`);
+  },
+
   _renderTaskPicker() {
     const sel = $('cfSeriesSel');
     if (!sel) return;
@@ -186,26 +394,32 @@ const CustomFlowController = {
   },
 
   _renderPromptList() {
-    const list = $('cfPromptList');
-    if (!list) return;
-    if (!this.seriesId) { list.innerHTML = ''; this._updateSelectedArea(); return; }
+    const sel = $('cfPromptSel');
+    if (!sel) return;
+    if (!this.seriesId) {
+      sel.innerHTML = '<option value="">— 先選擇 Prompt 系列 —</option>';
+      sel.disabled = true;
+      this.promptIdx = null;
+      this._updateSelectedArea();
+      return;
+    }
     const s = series.find(x => x.id === this.seriesId);
     if (!s?.prompts.length) {
-      list.innerHTML = '<span style="font-size:10px;color:var(--text3)">此系列無 Prompt</span>';
-      this._updateSelectedArea(); return;
+      sel.innerHTML = '<option value="">此系列無 Prompt</option>';
+      sel.disabled = true;
+      this.promptIdx = null;
+      this._updateSelectedArea();
+      return;
     }
-    list.innerHTML = s.prompts.map((p, i) => {
-      const active = i === this.promptIdx;
-      const style  = active ? 'border-color:var(--text2);color:var(--text);background:var(--bg3)' : '';
-      return `<button class="btn btn-ghost btn-sm" data-action="cfSelectPrompt" data-idx="${i}" style="font-size:10px;${style}">${esc(p.name)}</button>`;
-    }).join('');
+    if (this.promptIdx === null || this.promptIdx < 0 || this.promptIdx >= s.prompts.length) {
+      this.promptIdx = 0;
+      chrome.storage.local.set({ cfPromptIdx: this.promptIdx });
+    }
+    sel.disabled = false;
+    sel.innerHTML = s.prompts.map((p, i) =>
+      `<option value="${i}"${i === this.promptIdx ? ' selected' : ''}>${esc(p.name)}</option>`
+    ).join('');
     this._updateSelectedArea();
-  },
-
-  _selectPrompt(idx) {
-    this.promptIdx = this.promptIdx === idx ? null : idx;
-    chrome.storage.local.set({ cfPromptIdx: this.promptIdx });
-    this._renderPromptList();
   },
 
   _updateSelectedArea() {
@@ -235,10 +449,50 @@ const CustomFlowController = {
     el.removeAttribute('data-empty');
   },
 
+  _showResultEmpty(message = '尚未產生結果') {
+    if ($('cfResultName')) $('cfResultName').textContent = '結果';
+    if ($('cfResultEmpty')) {
+      $('cfResultEmpty').textContent = message;
+      $('cfResultEmpty').style.display = '';
+    }
+    if ($('cfResultText')) {
+      $('cfResultText').textContent = '';
+      $('cfResultText').style.display = 'none';
+    }
+    if ($('cfCopyBtn')) $('cfCopyBtn').disabled = true;
+    if ($('cfDlBtn')) $('cfDlBtn').disabled = true;
+  },
+
+  _showResultContent(result) {
+    if (!result) return;
+    this.lastResult = result;
+    if ($('cfResultName')) $('cfResultName').textContent = result.name;
+    if ($('cfResultEmpty')) $('cfResultEmpty').style.display = 'none';
+    if ($('cfResultText')) {
+      $('cfResultText').textContent = result.content;
+      $('cfResultText').style.display = '';
+    }
+    if ($('cfCopyBtn')) $('cfCopyBtn').disabled = false;
+    if ($('cfDlBtn')) $('cfDlBtn').disabled = false;
+  },
+
   _setRunUI(on) {
     if ($('cfRunBtn'))  $('cfRunBtn').disabled = on;
     if ($('cfStopBtn')) $('cfStopBtn').style.display = on ? '' : 'none';
     this.isRunning = on;
+  },
+
+  _setGlobalRunUI(on) {
+    if ($('cfRunAllBtn')) $('cfRunAllBtn').disabled = on;
+    if ($('cfStopAllBtn')) $('cfStopAllBtn').style.display = on ? '' : 'none';
+  },
+
+  _setGlobalStatus(text, level = 'info') {
+    const el = $('cfGlobalStatus');
+    if (!el) return;
+    el.classList.remove('success', 'error', 'warn');
+    if (level === 'success' || level === 'error' || level === 'warn') el.classList.add(level);
+    el.innerHTML = `<span class="label">狀態：</span>${esc(text)}`;
   },
 
   _log(text, level = 'info') {
@@ -255,15 +509,17 @@ const CustomFlowController = {
 
   handleDone(msg) {
     this._setRunUI(false);
+    this._setGlobalRunUI(false);
+    this.stopRequested = false;
     if ($('cfAutoSave')?.checked && msg.results?.length) {
       const r = msg.results[0];
-      this.lastResult = r;
-      if ($('cfResultName')) $('cfResultName').textContent = r.name;
-      if ($('cfResultText')) $('cfResultText').textContent = r.content;
-      if ($('cfResultSection')) $('cfResultSection').style.display = '';
+      this._showResultContent(r);
       this._log('✅ 整理完成並已存檔！', 'success');
+      this._setGlobalStatus('✅ 全部完成', 'success');
     } else {
+      this._showResultEmpty('此次未自動回收結果。請至 AI 對話框查看。');
       this._log('✅ 已送出，請至 AI 對話框查看', 'success');
+      this._setGlobalStatus('✅ 已送出，請至 AI Chat 查看', 'success');
     }
   },
 
@@ -275,12 +531,100 @@ const CustomFlowController = {
       func: () => {
         const clean = text => text.replace(/\n{3,}/g, '\n\n').trim();
         const unique = arr => [...new Set(arr.map(s => s.trim()).filter(Boolean))];
+        const debug = [];
+        const dbg = msg => {
+          debug.push(msg);
+          console.log(`[NTK grabPage] ${msg}`);
+        };
         const url = location.href;
         const isX = /(?:x\.com|twitter\.com)/.test(url);
+
+        const isExcludedNode = el => {
+          if (!el) return { excluded: true, reason: 'null-node' };
+          if (el.closest('[role="dialog"]')) return { excluded: true, reason: 'inside-dialog' };
+          if (el.closest('[aria-label*="Grok"]')) return { excluded: true, reason: 'inside-grok-panel' };
+          if (el.closest('[data-testid*="sheet"]')) return { excluded: true, reason: 'inside-sheet' };
+          const rect = el.getBoundingClientRect();
+          if (rect.left > window.innerWidth * 0.55) return { excluded: true, reason: `right-panel left=${Math.round(rect.left)}` };
+          return { excluded: false, reason: '' };
+        };
+
+        const collectTextFromNodes = (nodes, selectorPath, fallback) => {
+          const accepted = [];
+          for (const node of nodes) {
+            const text = node.innerText.trim();
+            if (!text) continue;
+            const verdict = isExcludedNode(node);
+            if (verdict.excluded) {
+              dbg(`exclude node selector=${selectorPath} reason=${verdict.reason}`);
+              continue;
+            }
+            accepted.push(text);
+          }
+          if (!accepted.length) {
+            dbg(`selector miss path=${selectorPath} fallback=${fallback}`);
+            return null;
+          }
+          const merged = clean(unique(accepted).join('\n\n'));
+          dbg(`selector hit path=${selectorPath} fallback=${fallback} textLength=${merged.length}`);
+          return merged;
+        };
+
         if (isX) {
-          const tweetBlocks = [...document.querySelectorAll('article[role="article"], div[data-testid="tweetText"], div[lang]')]
-            .filter(el => el.innerText.trim().length > 20);
-          if (tweetBlocks.length) return clean(unique(tweetBlocks.map(el => el.innerText)).join('\n\n'));
+          const primary = document.querySelector('main [data-testid="primaryColumn"]')
+            || document.querySelector('[data-testid="primaryColumn"]')
+            || document.querySelector('main');
+          dbg(`x.com detected primaryColumn=${!!primary}`);
+
+          const pickBestArticle = articles => {
+            const candidates = articles
+              .map(article => {
+                const verdict = isExcludedNode(article);
+                if (verdict.excluded) {
+                  dbg(`exclude article reason=${verdict.reason}`);
+                  return null;
+                }
+                const text = article.innerText.trim();
+                if (text.length <= 20) return null;
+                const rect = article.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const score = Math.abs(centerX - window.innerWidth * 0.33) + Math.abs(rect.top);
+                return { article, score, rect };
+              })
+              .filter(Boolean)
+              .sort((a, b) => a.score - b.score);
+            dbg(`filtered article candidates=${candidates.length}`);
+            return candidates[0]?.article || null;
+          };
+
+          const mainTweet = pickBestArticle(
+            primary ? [...primary.querySelectorAll('article[role="article"]')] : []
+          ) || pickBestArticle([...document.querySelectorAll('article[role="article"]')]);
+
+          dbg(`selected main article=${!!mainTweet}`);
+          if (mainTweet) {
+            const primarySelector = '[data-testid="tweetText"]';
+            const primaryText = collectTextFromNodes(
+              [...mainTweet.querySelectorAll('[data-testid="tweetText"]')],
+              primarySelector,
+              false
+            );
+            if (primaryText) return primaryText;
+
+            const fallbackSelector1 = '[lang]';
+            const fallbackText1 = collectTextFromNodes(
+              [...mainTweet.querySelectorAll('[lang]')],
+              fallbackSelector1,
+              true
+            );
+            if (fallbackText1) return fallbackText1;
+
+            const articleText = clean(mainTweet.innerText);
+            dbg(`article innerText fallback length=${articleText.length}`);
+            if (articleText.length > 20) return articleText;
+          }
+
+          dbg('x.com fallback exhausted, continuing to generic extraction');
         }
         const isThreads = /threads\.(net|com)/.test(url);
         if (isThreads) {
@@ -297,7 +641,9 @@ const CustomFlowController = {
         const body = article || document.body;
         const clone = body.cloneNode(true);
         clone.querySelectorAll('nav,footer,header,aside,script,style,[class*="ad"],[class*="sidebar"]').forEach(e => e.remove());
-        return clean(clone.innerText);
+        const text = clean(clone.innerText);
+        dbg(`generic extraction length=${text.length}`);
+        return text;
       }
     });
     const text = result?.result || '';
@@ -346,14 +692,17 @@ const CustomFlowController = {
 
     activeDistillContext = 'flow';
     this._setRunUI(true);
-    if ($('cfResultSection')) $('cfResultSection').style.display = 'none';
+    this._showResultEmpty('執行中，等待結果…');
     this._log(`送出整理（${fmtLabel}，${this.getAI()}）…`, 'info');
+    this._setGlobalStatus(`試跑中，等待 ${this.getAI().toUpperCase()} 回覆...`);
     chrome.runtime.sendMessage({
       type:     'START_DISTILL',
+      source:   'flow',
       content,
       fmt:      'wiki',
       targetAI: this.getAI(),
       wikiTpl,
+      autoSave: $('cfAutoSave')?.checked !== false,
       fullAuto: cfg.fullAuto !== false,
     });
   },
@@ -408,27 +757,58 @@ const CustomFlowController = {
     if (card) card.classList.toggle('cf-active', on);
   },
 
+  _statusLabelForCard(name) {
+    return ({
+      source: '01 - 抓取來源內容',
+      task: '02 - 套用 Prompt',
+      format: '03 - 套用 Schema',
+      ai: '04 - 設定目標 AI',
+      run: '05 - 送出整理',
+    })[name] || name;
+  },
+
+  async _waitWithStatus(name, delay) {
+    for (let remaining = delay; remaining > 0; remaining--) {
+      if (this.stopRequested) return false;
+      this._setGlobalStatus(`${this._statusLabelForCard(name)}，${remaining} 秒延遲等待中...`);
+      await new Promise(r => setTimeout(r, 1000));
+    }
+    return !this.stopRequested;
+  },
+
+  stopAll() {
+    this.stopRequested = true;
+    chrome.runtime.sendMessage({ type: 'STOP' });
+    this._setRunUI(false);
+    this._setGlobalRunUI(false);
+    this._setGlobalStatus('已停止', 'warn');
+    this._log('已停止', 'warn');
+  },
+
   async runAll() {
     if (this.isRunning) return;
     const order = ['source', 'task', 'format', 'ai', 'run'];
     const visible = order.filter(n => this.cardVisible[n] !== false);
     if (!visible.length) return;
 
-    const runAllBtn = $('cfRunAllBtn');
-    if (runAllBtn) runAllBtn.disabled = true;
+    this.stopRequested = false;
+    this._setGlobalRunUI(true);
+    this._setGlobalStatus('執行中...');
 
     // Build pipeline state as blocks execute
     const pipeline = {
       content: this.getContent(),
-      prompt:  this.getSelectedPrompt(),
-      schema:  this.getSelectedSchema(),
+      prompt:  this.cardVisible.task !== false ? this.getSelectedPrompt() : null,
+      schema:  this.cardVisible.format !== false ? this.getSelectedSchema() : null,
       ai:      this.getAI(),
     };
 
     console.log('[CF runAll] start. visible:', visible.join(' → '));
 
     for (const name of visible) {
+      if (this.stopRequested) break;
       this._highlightCard(name, true);
+      this._setGlobalStatus(this._statusLabelForCard(name));
       console.log('[CF runAll] block:', name);
 
       if (name === 'source') {
@@ -467,13 +847,18 @@ const CustomFlowController = {
       if (delay > 0 && name !== 'run') {
         this._log(`⏱ 等待 ${delay}s…`, 'info');
         console.log('[CF runAll] delay', delay, 's after block:', name);
-        await new Promise(r => setTimeout(r, delay * 1000));
+        const finished = await this._waitWithStatus(name, delay);
+        if (!finished) break;
       }
 
       this._highlightCard(name, false);
     }
 
-    if (runAllBtn) runAllBtn.disabled = false;
+    order.forEach(name => this._highlightCard(name, false));
+    if (!this.isRunning) {
+      this._setGlobalRunUI(false);
+      if (!this.stopRequested) this._setGlobalStatus('就緒');
+    }
   },
 
   async _runWithPipeline(pipeline) {
@@ -515,16 +900,19 @@ const CustomFlowController = {
 
     activeDistillContext = 'flow';
     this._setRunUI(true);
-    if ($('cfResultSection')) $('cfResultSection').style.display = 'none';
+    this._showResultEmpty('執行中，等待結果…');
     this._log(`送出（${fmtLabel} → ${ai}）…`, 'info');
+    this._setGlobalStatus(`05 - 送出整理，等待 ${ai.toUpperCase()} 回覆中...`);
     console.log('[CF runAll] Sending START_DISTILL with ai:', ai, '| fullAuto: true | prompt length:', wikiTpl.length);
 
     chrome.runtime.sendMessage({
       type:     'START_DISTILL',
+      source:   'flow',
       content,
       fmt:      'wiki',
       targetAI: ai,
       wikiTpl,
+      autoSave: $('cfAutoSave')?.checked !== false,
       fullAuto: true,  // Custom Flow always runs in full-auto mode
     });
   },
@@ -553,11 +941,9 @@ function initETLTab() {
     const btn = e.target.closest('[data-etl-toggle]');
     if (!btn) return;
     const card = etlSteps.querySelector(`[data-etl-card="${btn.dataset.etlToggle}"]`);
-    const body = card?.querySelector('.etl-card-body');
-    if (!body) return;
-    const hidden = body.style.display === 'none';
-    body.style.display = hidden ? '' : 'none';
-    btn.textContent = hidden ? '隱藏' : '展開';
+    if (!card) return;
+    const hidden = card.classList.toggle('cf-collapsed');
+    btn.textContent = hidden ? '展開' : '隱藏';
   });
 }
 
@@ -565,13 +951,9 @@ function initETLTab() {
 document.addEventListener('DOMContentLoaded', async () => {
   initETLTab();                       // synchronous DOM build — must run before any await
   await clearLegacyCloudSettings();
+  await migrateLegacyDistillAutoSave();
   const d = await loadSettings();
 
-  DistillSourceBlock.init(d);
-  DistillTaskBlock.init(d);
-  DistillFormatBlock.init(d);
-  DistillAIBlock.init(d);
-  DistillRunBlock.init(d);
   CustomFlowController.init(d);
 
   renderPrompts();
@@ -590,15 +972,26 @@ async function clearLegacyCloudSettings() {
   await chrome.storage.local.remove(['autoDrive', 'driveFolderId', 'sheetId', 'sheetTab', 'oauthToken']);
 }
 
+async function migrateLegacyDistillAutoSave() {
+  const legacy = await chrome.storage.local.get(['cfAutoSave', 'distillAutoSave']);
+  if (typeof legacy.cfAutoSave !== 'boolean' && typeof legacy.distillAutoSave === 'boolean') {
+    await chrome.storage.local.set({ cfAutoSave: legacy.distillAutoSave });
+  }
+  if (Object.prototype.hasOwnProperty.call(legacy, 'distillAutoSave')) {
+    await chrome.storage.local.remove(['distillAutoSave']);
+  }
+}
+
 async function loadSettings() {
   const d = await chrome.storage.local.get([
     'prompts', 'extractAI', 'distillAI', 'delaySeconds',
     'fullAuto', 'autoDownload', 'draftFolder',
-    'wikiTpl', 'noteTpl', 'distillAutoSave', 'extractFolder', 'distillFolder',
+    'wikiTpl', 'noteTpl', 'extractFolder', 'distillFolder',
     'promptSeries', 'popupFontSize', 'popupTextContrast', 'lastTab',
     'currentSeriesId', 'extractSeriesId', 'distillSeriesId', 'distillPromptIdx',
     'schemaTemplates', 'extractSchemaId', 'distillSchemaId',
     'cfCardVisible', 'cfSeriesId', 'cfPromptIdx', 'cfSchemaId', 'cfAI', 'cfAutoSave', 'cfBlockDelays',
+    'customFlowPresets', 'cfDefaultPresetId',
   ]);
 
   prompts         = d.prompts || [];
@@ -703,7 +1096,7 @@ function bindAll() {
     if (btn.dataset.action === 'delDocByName')  {
       await delDocByName(name);
       renderExtractLibrary();
-      DistillRunBlock.renderLibrary();
+      if (DistillRunBlock.isInitialized) DistillRunBlock.renderLibrary();
     }
   });
 
@@ -749,7 +1142,18 @@ function bindAll() {
     }));
 
   // Prompt series
-  $('loadAllSeriesBtn').addEventListener('click', loadAllSeries);
+  $('exportPromptsBtn').addEventListener('click', exportPromptSeries);
+  $('importPromptsBtn').addEventListener('click', () => $('promptImportInput').click());
+  $('promptImportInput').addEventListener('change', async e => {
+    const input = e.target;
+    try {
+      await importPromptSeries(input.files?.[0]);
+    } catch (err) {
+      alert(`Prompt 匯入失敗：${err.message}`);
+    } finally {
+      input.value = '';
+    }
+  });
   $('addSeriesBtn').addEventListener('click', addSeries);
   $('newSeriesName').addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); addSeries(); }
@@ -759,6 +1163,12 @@ function bindAll() {
     $('newSeriesBar').classList.remove('show');
     $('newSeriesName').value = '';
   });
+  $('saveSeriesNameBtn').addEventListener('click', saveCurrentSeriesName);
+  $('editSeriesName').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); saveCurrentSeriesName(); }
+    if (e.key === 'Escape') closeEditSeriesForm();
+  });
+  $('cancelEditSeries').addEventListener('click', closeEditSeriesForm);
   $('addPromptTrigger').addEventListener('click', () => {
     $('addPromptForm').classList.add('open');
     $('addPromptTrigger').style.display = 'none';
@@ -776,6 +1186,18 @@ function bindAll() {
   });
 
   // Schema tab
+  $('exportSchemasBtn').addEventListener('click', exportSchemaTemplates);
+  $('importSchemasBtn').addEventListener('click', () => $('schemaImportInput').click());
+  $('schemaImportInput').addEventListener('change', async e => {
+    const input = e.target;
+    try {
+      await importSchemaTemplates(input.files?.[0]);
+    } catch (err) {
+      alert(`Schema 匯入失敗：${err.message}`);
+    } finally {
+      input.value = '';
+    }
+  });
   $('addSchemaTrigger').addEventListener('click', () => {
     $('addSchemaForm').classList.add('open');
     $('addSchemaTrigger').style.display = 'none';
@@ -849,14 +1271,16 @@ function bindAll() {
 }
 
 function switchTab(name) {
+  if (name === 'distill') name = 'flow';
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `tab-${name}`));
-  const actionsEl = $('topbarPromptsActions');
-  if (actionsEl) actionsEl.style.display = name === 'prompts' ? '' : 'none';
+  const promptActionsEl = $('topbarPromptsActions');
+  const schemaActionsEl = $('topbarSchemaActions');
+  if (promptActionsEl) promptActionsEl.style.display = name === 'prompts' ? '' : 'none';
+  if (schemaActionsEl) schemaActionsEl.style.display = name === 'schema' ? '' : 'none';
   if (name === 'prompts') { renderTabbar(); renderCards(); }
   if (name === 'schema')  { renderSchemas(); }
   if (name === 'extract') { renderExtractPromptPicker(); renderExtractSchemaPicker(); renderExtractLibrary(); }
-  if (name === 'distill') { DistillTaskBlock._renderPicker(); DistillFormatBlock._renderPicker(); DistillRunBlock.renderLibrary(); }
   if (name === 'flow')    { CustomFlowController._renderTaskPicker(); CustomFlowController._renderFormatPicker(); }
   chrome.storage.local.set({ lastTab: name });
 }
@@ -1019,7 +1443,7 @@ function listenBg() {
       case 'LOG_EXTRACT': elog(msg.text, msg.level); break;
       case 'LOG_DISTILL':
         if (activeDistillContext === 'flow') CustomFlowController.handleLog(msg.text, msg.level);
-        else DistillRunBlock.handleLog(msg.text, msg.level);
+        else if (DistillRunBlock.isInitialized) DistillRunBlock.handleLog(msg.text, msg.level);
         break;
 
       case 'EXTRACT_DONE':
@@ -1034,7 +1458,7 @@ function listenBg() {
 
       case 'DISTILL_DONE':
         if (activeDistillContext === 'flow') CustomFlowController.handleDone(msg);
-        else DistillRunBlock.handleDone(msg);
+        else if (DistillRunBlock.isInitialized) DistillRunBlock.handleDone(msg);
         activeDistillContext = null;
         break;
 
@@ -1043,7 +1467,9 @@ function listenBg() {
         if (activeDistillContext === 'flow') {
           CustomFlowController.handleLog('❌ ' + msg.text, 'error');
           CustomFlowController._setRunUI(false);
-        } else {
+          CustomFlowController._setGlobalRunUI(false);
+          CustomFlowController._setGlobalStatus('❌ ' + msg.text, 'error');
+        } else if (DistillRunBlock.isInitialized) {
           DistillRunBlock.handleLog('❌ ' + msg.text, 'error');
           DistillRunBlock.setUI(false);
         }
@@ -1119,7 +1545,10 @@ function renderSchemas() {
       <div class="pcard-head" data-saction="toggleSchema" data-idx="${i}">
         <span class="pcard-num">#${i + 1}</span>
         <div class="pcard-info">
-          <div class="pcard-name">${esc(s.name)}</div>
+          <div class="pcard-name-row">
+            <div class="pcard-name">${esc(s.name)}</div>
+            <span class="pcard-edit-badge" title="名稱可編輯">✎</span>
+          </div>
           <div class="pcard-preview">${esc(excerpt(s.text))}</div>
         </div>
         <div class="pcard-head-actions">
@@ -1134,6 +1563,7 @@ function renderSchemas() {
         <div class="pcard-foot">
           <span class="pcard-chars">${s.text.length} 字</span>
           <div class="spacer"></div>
+          <button class="btn btn-primary btn-xs" data-saction="copySchema" data-idx="${i}">⧉ 複製 Schema</button>
         </div>
       </div>
     </div>`;
@@ -1146,6 +1576,21 @@ function renderSchemas() {
       if (ta) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
     }
   }
+
+  area.querySelectorAll('[data-saction="copySchema"]').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const idx = Number(btn.dataset.idx);
+      const schema = schemaTemplates[idx];
+      if (!schema) return;
+      try {
+        await navigator.clipboard.writeText(schema.text);
+        showToast(`已複製「${schema.name}」`);
+      } catch (_) {
+        alert('複製失敗，請確認瀏覽器權限。');
+      }
+    });
+  });
 }
 
 function closeAddSchemaForm() {
@@ -1215,6 +1660,171 @@ function updateExtractSchemaPreview() {
   el.removeAttribute('data-empty');
 }
 
+function makeExportStamp() {
+  return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z').replace(/[:T]/g, '-');
+}
+
+function queueDownloadText(name, content, mime = 'text/plain;charset=utf-8') {
+  chrome.runtime.sendMessage({ type: 'DOWNLOAD_TEXT', name, content, mime });
+}
+
+function ensureUniqueId(rawId, seen) {
+  const base = typeof rawId === 'string' && rawId.trim() ? rawId.trim() : crypto.randomUUID();
+  let id = base;
+  while (seen.has(id)) id = crypto.randomUUID();
+  seen.add(id);
+  return id;
+}
+
+function normalizePromptImport(parsed) {
+  const rawSeries = Array.isArray(parsed) ? parsed : parsed?.promptSeries;
+  if (!Array.isArray(rawSeries)) throw new Error('Prompt 匯入檔格式不正確');
+
+  const seriesIds = new Set();
+  return rawSeries.map((item, sIdx) => {
+    const promptIds = new Set();
+    const promptsRaw = Array.isArray(item?.prompts) ? item.prompts : [];
+    const name = String(item?.name || `未命名系列 ${sIdx + 1}`).trim() || `未命名系列 ${sIdx + 1}`;
+    return {
+      id: ensureUniqueId(item?.id, seriesIds),
+      name,
+      prompts: promptsRaw.map((p, pIdx) => ({
+        id: ensureUniqueId(p?.id, promptIds),
+        name: String(p?.name || `Prompt ${pIdx + 1}`).trim() || `Prompt ${pIdx + 1}`,
+        text: String(p?.text || ''),
+      })),
+    };
+  });
+}
+
+function normalizeSchemaImport(parsed) {
+  const rawSchemas = Array.isArray(parsed) ? parsed : parsed?.schemaTemplates;
+  if (!Array.isArray(rawSchemas)) throw new Error('Schema 匯入檔格式不正確');
+
+  const schemaIds = new Set();
+  return rawSchemas.map((item, idx) => ({
+    id: ensureUniqueId(item?.id, schemaIds),
+    name: String(item?.name || `Schema ${idx + 1}`).trim() || `Schema ${idx + 1}`,
+    text: String(item?.text || ''),
+  }));
+}
+
+function reconcilePromptSelection(seriesId, promptIdx, sourceSeries) {
+  if (!seriesId) return { seriesId: null, promptIdx: null };
+  const s = sourceSeries.find(x => x.id === seriesId);
+  if (!s) return { seriesId: null, promptIdx: null };
+  if (promptIdx === null || promptIdx === undefined) return { seriesId, promptIdx: null };
+  return (promptIdx >= 0 && promptIdx < s.prompts.length)
+    ? { seriesId, promptIdx }
+    : { seriesId, promptIdx: null };
+}
+
+function reconcileSchemaSelection(schemaId, sourceSchemas) {
+  return schemaId && sourceSchemas.some(x => x.id === schemaId) ? schemaId : null;
+}
+
+function refreshPromptConsumers() {
+  renderTabbar();
+  renderCards();
+  renderExtractPromptPicker();
+  DistillTaskBlock._renderPicker();
+  CustomFlowController._renderTaskPicker();
+}
+
+function refreshSchemaConsumers() {
+  renderSchemas();
+  renderExtractSchemaPicker();
+  DistillFormatBlock._renderPicker();
+  CustomFlowController._renderFormatPicker();
+}
+
+function exportPromptSeries() {
+  const payload = {
+    type: 'narrative-toolkit.prompts',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    promptSeries: series,
+  };
+  queueDownloadText(
+    `narrative-toolkit-prompts-${makeExportStamp()}.json`,
+    JSON.stringify(payload, null, 2),
+    'application/json;charset=utf-8'
+  );
+  showToast(`已匯出 ${series.length} 個系列`);
+}
+
+function exportSchemaTemplates() {
+  const payload = {
+    type: 'narrative-toolkit.schemas',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    schemaTemplates,
+  };
+  queueDownloadText(
+    `narrative-toolkit-schemas-${makeExportStamp()}.json`,
+    JSON.stringify(payload, null, 2),
+    'application/json;charset=utf-8'
+  );
+  showToast(`已匯出 ${schemaTemplates.length} 個 Schema`);
+}
+
+async function importPromptSeries(file) {
+  if (!file) return;
+  if (!confirm('匯入 Prompts 會覆蓋目前 Prompt 庫，是否繼續？')) return;
+
+  const text = await file.text();
+  const parsed = JSON.parse(text);
+  const importedSeries = normalizePromptImport(parsed);
+
+  series = importedSeries;
+  currentSeriesId = series.some(x => x.id === currentSeriesId) ? currentSeriesId : (series[0]?.id || null);
+  extractSeriesId = series.some(x => x.id === extractSeriesId) ? extractSeriesId : null;
+
+  const distillState = reconcilePromptSelection(DistillTaskBlock.seriesId, DistillTaskBlock.promptIdx, series);
+  DistillTaskBlock.seriesId = distillState.seriesId;
+  DistillTaskBlock.promptIdx = distillState.promptIdx;
+
+  const flowState = reconcilePromptSelection(CustomFlowController.seriesId, CustomFlowController.promptIdx, series);
+  CustomFlowController.seriesId = flowState.seriesId;
+  CustomFlowController.promptIdx = flowState.promptIdx;
+
+  expandedCardIdx = null;
+  await chrome.storage.local.set({
+    promptSeries: series,
+    currentSeriesId,
+    extractSeriesId,
+    distillSeriesId: DistillTaskBlock.seriesId,
+    distillPromptIdx: DistillTaskBlock.promptIdx,
+    cfSeriesId: CustomFlowController.seriesId,
+    cfPromptIdx: CustomFlowController.promptIdx,
+  });
+  refreshPromptConsumers();
+  showToast(`已匯入 ${series.length} 個系列`);
+}
+
+async function importSchemaTemplates(file) {
+  if (!file) return;
+  if (!confirm('匯入 Schema 會覆蓋目前 Schema 庫，是否繼續？')) return;
+
+  const text = await file.text();
+  const parsed = JSON.parse(text);
+  schemaTemplates = normalizeSchemaImport(parsed);
+
+  extractSchemaId = reconcileSchemaSelection(extractSchemaId, schemaTemplates);
+  DistillFormatBlock.schemaId = reconcileSchemaSelection(DistillFormatBlock.schemaId, schemaTemplates);
+  CustomFlowController.schemaId = reconcileSchemaSelection(CustomFlowController.schemaId, schemaTemplates);
+  expandedSchemaIdx = null;
+
+  await chrome.storage.local.set({
+    schemaTemplates,
+    extractSchemaId,
+    distillSchemaId: DistillFormatBlock.schemaId,
+    cfSchemaId: CustomFlowController.schemaId,
+  });
+  refreshSchemaConsumers();
+  showToast(`已匯入 ${schemaTemplates.length} 個 Schema`);
+}
+
 // ── Prompt Series — tab-bar + card pattern ────────────────────────────────────
 function excerpt(text) {
   const t = String(text || '').replace(/\n+/g, ' ').trim();
@@ -1240,26 +1850,54 @@ function _showSaveToast() {
 function renderTabbar() {
   const bar = $('seriesTabbar');
   if (!bar) return;
-  bar.innerHTML = series.map(s => `
-    <button class="series-tab ${s.id === currentSeriesId ? 'active' : ''}" data-action="selectSeries" data-sid="${s.id}">
-      ${esc(s.name)}<span class="series-tab-count">${s.prompts.length}</span>
-    </button>
-  `).join('') + `<button class="tab-add-btn" id="tabAddSeriesBtn" title="新增系列">＋</button>`;
+  const hasSeries = series.length > 0;
+  bar.innerHTML = `
+    <div class="series-select-wrap">
+      <select class="input series-select" id="seriesSelect"${hasSeries ? '' : ' disabled'}>
+        <option value="">${hasSeries ? '— 選擇 Prompt 系列 —' : '尚無 Prompt 系列'}</option>
+        ${series.map(s => `
+          <option value="${s.id}"${s.id === currentSeriesId ? ' selected' : ''}>
+            ${esc(s.name)} (${s.prompts.length})
+          </option>
+        `).join('')}
+      </select>
+    </div>
+    <div class="series-actions">
+      <button class="series-tool-btn${hasSeries && currentSeriesId ? ' is-ready' : ''}" id="editSeriesBtn" title="編輯系列"${hasSeries && currentSeriesId ? '' : ' disabled'}>編輯</button>
+      <button class="series-tool-btn" id="tabAddSeriesBtn" title="新增系列">新增</button>
+    </div>
+  `;
 
-  bar.querySelectorAll('.series-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      currentSeriesId = tab.dataset.sid;
+  const sel = $('seriesSelect');
+  if (sel) {
+    sel.addEventListener('change', () => {
+      currentSeriesId = sel.value || null;
       expandedCardIdx = null;
       chrome.storage.local.set({ currentSeriesId });
       closeAddForm();
+      closeEditSeriesForm();
       renderTabbar();
       renderCards();
     });
-  });
+  }
+
+  const editBtn = $('editSeriesBtn');
+  if (editBtn) {
+    editBtn.addEventListener('click', () => {
+      const cur = series.find(x => x.id === currentSeriesId);
+      if (!cur) return;
+      closeAddForm();
+      $('editSeriesName').value = cur.name;
+      $('editSeriesBar').classList.add('show');
+      $('editSeriesName').focus();
+      $('editSeriesName').select();
+    });
+  }
 
   const addBtn = $('tabAddSeriesBtn');
   if (addBtn) {
     addBtn.addEventListener('click', () => {
+      closeEditSeriesForm();
       $('newSeriesBar').classList.add('show');
       $('newSeriesName').focus();
     });
@@ -1273,6 +1911,7 @@ function renderCards() {
 
   const s = series.find(x => x.id === currentSeriesId);
   if (!s) {
+    closeEditSeriesForm();
     area.innerHTML = `<div class="empty-state"><div class="empty-dot"></div><div class="empty-state-text">← 選擇或新增系列</div></div>`;
     addRow.style.display = 'none';
     return;
@@ -1292,22 +1931,25 @@ function renderCards() {
       <div class="pcard-head" data-idx="${i}">
         <span class="pcard-num">#${i + 1}</span>
         <div class="pcard-info">
-          <div class="pcard-name">${esc(p.name)}</div>
+          <div class="pcard-name-row">
+            <div class="pcard-name">${esc(p.name)}</div>
+            <span class="pcard-edit-badge" title="名稱可編輯">✎</span>
+          </div>
           <div class="pcard-preview">${esc(excerpt(p.text))}</div>
         </div>
         <div class="pcard-head-actions">
-          <button class="btn btn-primary btn-xs" data-action="loadOneCard" data-idx="${i}">▶</button>
           <button class="btn btn-danger" data-action="delCard" data-idx="${i}">✕</button>
         </div>
         <span class="chevron">▾</span>
       </div>
       ${isExp ? `
       <hr class="pcard-divider">
+      <input class="prompt-name-input" data-action="renamePrompt" data-idx="${i}" value="${esc(p.name)}" placeholder="Prompt 名稱">
       <textarea class="pcard-editor" data-idx="${i}">${esc(p.text)}</textarea>
       <div class="pcard-foot">
         <span class="pcard-chars">${p.text.length} 字</span>
         <div class="spacer"></div>
-        <button class="btn btn-primary btn-xs" data-action="loadOneCard" data-idx="${i}">▶ 載入到 ETL</button>
+        <button class="btn btn-primary btn-xs" data-action="copyOneCard" data-idx="${i}">⧉ 複製 Prompt</button>
       </div>` : ''}
     </div>`;
   }).join('');
@@ -1353,19 +1995,33 @@ function renderCards() {
     });
   });
 
-  area.querySelectorAll('[data-action="loadOneCard"]').forEach(btn => {
-    btn.addEventListener('click', e => {
+  area.querySelectorAll('.prompt-name-input').forEach(input => {
+    input.addEventListener('input', () => {
+      const idx = Number(input.dataset.idx);
+      const cur = series.find(x => x.id === currentSeriesId);
+      if (cur?.prompts[idx]) {
+        cur.prompts[idx].name = input.value;
+        chrome.storage.local.set({ promptSeries: series });
+        _showSaveToast();
+        const nameEl = input.closest('.pcard').querySelector('.pcard-name');
+        if (nameEl) nameEl.textContent = input.value;
+      }
+    });
+  });
+
+  area.querySelectorAll('[data-action="copyOneCard"]').forEach(btn => {
+    btn.addEventListener('click', async e => {
       e.stopPropagation();
       const idx = Number(btn.dataset.idx);
       const cur = series.find(x => x.id === currentSeriesId);
       if (!cur) return;
       const p = cur.prompts[idx];
-      prompts.push({ text: p.text, status: 'pending' });
-      chrome.storage.local.set({ prompts });
-      switchTab('extract');
-      renderPrompts();
-      elog(`已載入「${p.name}」到萃取清單`, 'success');
-      showToast(`已載入「${p.name}」`);
+      try {
+        await navigator.clipboard.writeText(p.text);
+        showToast(`已複製「${p.name}」`);
+      } catch (_) {
+        alert('複製失敗，請確認瀏覽器權限。');
+      }
     });
   });
 
@@ -1392,6 +2048,13 @@ function closeAddForm() {
   $('newSeriesPromptText').value = '';
 }
 
+function closeEditSeriesForm() {
+  const bar = $('editSeriesBar');
+  const input = $('editSeriesName');
+  if (bar) bar.classList.remove('show');
+  if (input) input.value = '';
+}
+
 function renderSeries()        { renderTabbar(); }
 function renderSeriesPrompts() { renderCards(); }
 
@@ -1410,15 +2073,19 @@ function addSeries() {
   CustomFlowController._renderTaskPicker();
 }
 
-function loadAllSeries() {
+function saveCurrentSeriesName() {
+  const nextName = $('editSeriesName').value.trim();
+  if (!nextName || !currentSeriesId) return;
   const s = series.find(x => x.id === currentSeriesId);
-  if (!s || !s.prompts.length) return;
-  s.prompts.forEach(p => prompts.push({ text: p.text, status: 'pending' }));
-  chrome.storage.local.set({ prompts });
-  switchTab('extract');
-  renderPrompts();
-  elog(`已載入系列「${s.name}」共 ${s.prompts.length} 個 Prompt`, 'success');
-  showToast(`已載入 ${s.prompts.length} 個 Prompt`);
+  if (!s) return;
+  s.name = nextName;
+  chrome.storage.local.set({ promptSeries: series });
+  closeEditSeriesForm();
+  renderTabbar();
+  renderCards();
+  renderExtractPromptPicker();
+  CustomFlowController._renderTaskPicker();
+  showToast(`已更新系列名稱`);
 }
 
 function addSeriesPrompt() {

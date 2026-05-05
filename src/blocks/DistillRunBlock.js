@@ -12,7 +12,7 @@ const DistillRunBlock = {
     if (this.isInitialized) return;
     this.isInitialized = true;
 
-    $('distillAutoSave').checked = d.distillAutoSave !== false;
+    $('cfAutoSaveDistill').checked = d.cfAutoSave !== false;
     $('distillFolder').value = d.distillFolder || d.draftFolder || '';
 
     $('saveDraftBtn').addEventListener('click', () => this.saveDraft());
@@ -22,8 +22,8 @@ const DistillRunBlock = {
       this.setUI(false);
       dlog('已停止', 'warn');
     });
-    $('distillAutoSave').addEventListener('change', e =>
-      chrome.storage.local.set({ distillAutoSave: e.target.checked }));
+    $('cfAutoSaveDistill').addEventListener('change', e =>
+      chrome.storage.local.set({ cfAutoSave: e.target.checked }));
     $('copyDistillBtn').addEventListener('click', () => {
       if (!this.lastResult) return;
       navigator.clipboard.writeText(this.lastResult.content);
@@ -62,7 +62,7 @@ const DistillRunBlock = {
       <div class="cf-card" data-cf-card="run">
         <div class="cf-card-head">
           <span class="cf-card-num">05</span>
-          <span class="cf-card-title">RUN — 執行整理</span>
+          <span class="cf-card-title">RUN — 執行</span>
           <select class="cf-delay-sel" data-cf-delay-for="run">
             <option value="0">無延遲</option>
             <option value="2">2s</option>
@@ -75,25 +75,17 @@ const DistillRunBlock = {
           <button class="btn btn-ghost btn-xs" data-cf-toggle="run">隱藏</button>
         </div>
         <div class="cf-card-body">
-          <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3);cursor:pointer;margin-bottom:12px;user-select:none">
-            <input type="checkbox" id="cfAutoSave" checked style="accent-color:var(--text);width:13px;height:13px">
-            整理完成後自動存檔並下載
-          </label>
           <div class="run-row" style="margin-top:0">
-            <button class="btn btn-primary" id="cfRunBtn">✦ 執行整理</button>
+            <button class="btn btn-primary" id="cfRunBtn">▶ 試跑一次</button>
             <button class="btn btn-danger" id="cfStopBtn" style="display:none">停止</button>
-            <button class="btn" id="cfSaveDraftBtn" style="margin-left:auto">💾 存草稿</button>
           </div>
-          <div class="log-strip" id="cfLog" style="margin-top:10px"><span class="ll">就緒</span></div>
-          <div id="cfResultSection" style="display:none;margin-top:12px">
-            <div class="section-head" style="margin-bottom:8px">
-              <div class="section-title" id="cfResultName">整理結果</div>
-              <div class="row" style="gap:4px">
-                <button class="btn btn-xs" id="cfCopyBtn">複製</button>
-                <button class="btn btn-xs" id="cfDlBtn">⬇ 下載</button>
-              </div>
-            </div>
-            <pre class="result-pre" id="cfResultText" style="max-height:200px"></pre>
+          <div style="height:1px;background:var(--line);margin:14px 0"></div>
+          <div class="cf-subsection" style="margin-top:0">
+            <label class="cf-option-row">
+              <input type="checkbox" id="cfAutoSave" checked style="accent-color:var(--text);width:13px;height:13px">
+              <span>執行完後自動存檔與下載</span>
+            </label>
+            <div class="cf-option-hint">關閉時僅送至 AI Chat，不自動回收結果</div>
           </div>
         </div>
       </div>
@@ -105,7 +97,7 @@ const DistillRunBlock = {
 
   handleDone(msg) {
     this.setUI(false);
-    if ($('distillAutoSave').checked && msg.results?.length) {
+    if ($('cfAutoSaveDistill').checked && msg.results?.length) {
       const r = msg.results[0];
       this.lastResult = r;
       $('distillResultName').textContent = r.name;
@@ -166,6 +158,7 @@ const DistillRunBlock = {
       fmt: 'wiki',
       targetAI: DistillAIBlock.getAI(),
       wikiTpl,
+      autoSave: $('cfAutoSaveDistill')?.checked !== false,
       fullAuto: cfg.fullAuto !== false,
     });
   },

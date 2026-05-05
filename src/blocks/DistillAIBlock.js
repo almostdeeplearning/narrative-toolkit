@@ -5,6 +5,17 @@ const DistillAIBlock = {
   isInitialized: false,
   ai: 'gpt',
 
+  _distillMarkup() {
+    return `
+      <div class="ai-pills" id="distillAiSelect">
+        <button class="ai-pill active" data-ai="gpt">GPT</button>
+        <button class="ai-pill" data-ai="gemini">Gemini</button>
+        <button class="ai-pill" data-ai="claude">Claude</button>
+        <button class="ai-pill" data-ai="grok">Grok</button>
+      </div>
+    `.trim();
+  },
+
   init(d) {
     if (this.isInitialized) return;
     this.isInitialized = true;
@@ -24,6 +35,11 @@ const DistillAIBlock = {
   },
 
   getAI() { return this.ai; },
+
+  renderDistill(container) {
+    if (!container) return;
+    container.innerHTML = this._distillMarkup();
+  },
 
   renderCF(container) {
     const el = document.createElement('div');

@@ -5,6 +5,18 @@ const DistillFormatBlock = {
   isInitialized: false,
   schemaId: null,
 
+  _distillMarkup() {
+    return `
+      <div class="row" style="gap:8px;align-items:center;margin-bottom:6px">
+        <select id="distillSchemaSel" class="input" style="flex:1;height:32px;font-size:11px;padding:4px 8px">
+          <option value="">— 不用 Schema，直接存草稿 —</option>
+        </select>
+        <button class="btn btn-xs" id="clearDistillSchemaBtn">✕</button>
+      </div>
+      <pre class="selected-prompt-preview" id="distillSchemaPreview" data-empty="1" style="max-height:80px;overflow:auto;margin-bottom:8px"></pre>
+    `.trim();
+  },
+
   init(d) {
     if (this.isInitialized) return;
     this.isInitialized = true;
@@ -22,6 +34,11 @@ const DistillFormatBlock = {
     });
 
     this._renderPicker();
+  },
+
+  renderDistill(container) {
+    if (!container) return;
+    container.innerHTML = this._distillMarkup();
   },
 
   renderCF(container) {

@@ -20,16 +20,16 @@ function setStep(n) {
     if (!num || !txt) continue;
 
     if (i < n) {
-      num.className = 'etl-num done';
-      txt.className = 'etl-label done';
+      num.className = num.classList.contains('cf-card-num') ? 'cf-card-num etl-card-num done' : 'etl-num done';
+      txt.className = txt.classList.contains('cf-card-title') ? 'cf-card-title etl-card-title done' : 'etl-label done';
       num.textContent = '✓';
     } else if (i === n) {
-      num.className = 'etl-num active';
-      txt.className = 'etl-label active';
+      num.className = num.classList.contains('cf-card-num') ? 'cf-card-num etl-card-num active' : 'etl-num active';
+      txt.className = txt.classList.contains('cf-card-title') ? 'cf-card-title etl-card-title active' : 'etl-label active';
       num.textContent = String(i).padStart(2, '0');
     } else {
-      num.className = 'etl-num';
-      txt.className = 'etl-label';
+      num.className = num.classList.contains('cf-card-num') ? 'cf-card-num etl-card-num' : 'etl-num';
+      txt.className = txt.classList.contains('cf-card-title') ? 'cf-card-title etl-card-title' : 'etl-label';
       num.textContent = String(i).padStart(2, '0');
     }
   }

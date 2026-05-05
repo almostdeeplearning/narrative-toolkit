@@ -55,7 +55,7 @@ const DistillTaskBlock = {
             <select id="cfSeriesSel" class="input" style="flex:1;height:30px;font-size:11px;padding:4px 8px"></select>
             <button class="btn btn-xs" id="cfClearPromptBtn">✕</button>
           </div>
-          <div id="cfPromptList" class="chip-row"></div>
+          <select id="cfPromptSel" class="input" style="width:100%;height:30px;font-size:11px;padding:4px 8px;margin-bottom:8px"></select>
           <pre class="selected-prompt-preview" id="cfSelectedPromptText" data-empty="1" style="max-height:80px;overflow:auto"></pre>
         </div>
       </div>

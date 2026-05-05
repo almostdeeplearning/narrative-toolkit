@@ -4,6 +4,21 @@
 const DistillSourceBlock = {
   isInitialized: false,
 
+  _distillMarkup() {
+    return `
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">來源內容</div>
+          <div class="row" style="gap:8px">
+            <span class="char-count" id="charCount">0 字</span>
+            <button class="btn btn-sm" id="grabPageBtn">⊕ 抓取當前頁面</button>
+          </div>
+        </div>
+        <textarea class="ta" id="rawText" rows="6" placeholder="貼入長文，或點「抓取當前頁面」自動填入..."></textarea>
+      </div>
+    `.trim();
+  },
+
   init(_d) {
     if (this.isInitialized) return;
     this.isInitialized = true;
@@ -14,6 +29,11 @@ const DistillSourceBlock = {
   },
 
   getContent() { return $('rawText').value.trim(); },
+
+  renderDistill(container) {
+    if (!container) return;
+    container.innerHTML = this._distillMarkup();
+  },
 
   renderCF(container) {
     const el = document.createElement('div');
@@ -39,6 +59,9 @@ const DistillSourceBlock = {
             <button class="btn btn-sm" id="cfGrabPageBtn">⊕ 抓取當前頁面</button>
           </div>
           <textarea class="ta" id="cfRawText" rows="6" placeholder="貼入長文，或點「抓取當前頁面」自動填入..."></textarea>
+          <div class="row" style="justify-content:flex-end;margin-top:10px">
+            <button class="btn" id="cfSaveDraftBtn">存草稿</button>
+          </div>
         </div>
       </div>
     `.trim();
@@ -53,12 +76,96 @@ const DistillSourceBlock = {
       func: () => {
         const clean = text => text.replace(/\n{3,}/g, '\n\n').trim();
         const unique = arr => [...new Set(arr.map(s => s.trim()).filter(Boolean))];
+        const dbg = msg => console.log(`[NTK distill grabPage] ${msg}`);
         const url = location.href;
         const isX = /(?:x\.com|twitter\.com)/.test(url);
+
+        const isExcludedNode = el => {
+          if (!el) return { excluded: true, reason: 'null-node' };
+          if (el.closest('[role="dialog"]')) return { excluded: true, reason: 'inside-dialog' };
+          if (el.closest('[aria-label*="Grok"]')) return { excluded: true, reason: 'inside-grok-panel' };
+          if (el.closest('[data-testid*="sheet"]')) return { excluded: true, reason: 'inside-sheet' };
+          const rect = el.getBoundingClientRect();
+          if (rect.left > window.innerWidth * 0.55) return { excluded: true, reason: `right-panel left=${Math.round(rect.left)}` };
+          return { excluded: false, reason: '' };
+        };
+
+        const collectTextFromNodes = (nodes, selectorPath, fallback) => {
+          const accepted = [];
+          for (const node of nodes) {
+            const text = node.innerText.trim();
+            if (!text) continue;
+            const verdict = isExcludedNode(node);
+            if (verdict.excluded) {
+              dbg(`exclude node selector=${selectorPath} reason=${verdict.reason}`);
+              continue;
+            }
+            accepted.push(text);
+          }
+          if (!accepted.length) {
+            dbg(`selector miss path=${selectorPath} fallback=${fallback}`);
+            return null;
+          }
+          const merged = clean(unique(accepted).join('\n\n'));
+          dbg(`selector hit path=${selectorPath} fallback=${fallback} textLength=${merged.length}`);
+          return merged;
+        };
+
         if (isX) {
-          const tweetBlocks = [...document.querySelectorAll('article[role="article"], div[data-testid="tweetText"], div[lang]')]
-            .filter(el => el.innerText.trim().length > 20);
-          if (tweetBlocks.length) return clean(unique(tweetBlocks.map(el => el.innerText)).join('\n\n'));
+          const primary = document.querySelector('main [data-testid="primaryColumn"]')
+            || document.querySelector('[data-testid="primaryColumn"]')
+            || document.querySelector('main');
+          dbg(`x.com detected primaryColumn=${!!primary}`);
+
+          const pickBestArticle = articles => {
+            const candidates = articles
+              .map(article => {
+                const verdict = isExcludedNode(article);
+                if (verdict.excluded) {
+                  dbg(`exclude article reason=${verdict.reason}`);
+                  return null;
+                }
+                const text = article.innerText.trim();
+                if (text.length <= 20) return null;
+                const rect = article.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const score = Math.abs(centerX - window.innerWidth * 0.33) + Math.abs(rect.top);
+                return { article, score, rect };
+              })
+              .filter(Boolean)
+              .sort((a, b) => a.score - b.score);
+            dbg(`filtered article candidates=${candidates.length}`);
+            return candidates[0]?.article || null;
+          };
+
+          const mainTweet = pickBestArticle(
+            primary ? [...primary.querySelectorAll('article[role="article"]')] : []
+          ) || pickBestArticle([...document.querySelectorAll('article[role="article"]')]);
+
+          dbg(`selected main article=${!!mainTweet}`);
+          if (mainTweet) {
+            const primarySelector = '[data-testid="tweetText"]';
+            const primaryText = collectTextFromNodes(
+              [...mainTweet.querySelectorAll('[data-testid="tweetText"]')],
+              primarySelector,
+              false
+            );
+            if (primaryText) return primaryText;
+
+            const fallbackSelector1 = '[lang]';
+            const fallbackText1 = collectTextFromNodes(
+              [...mainTweet.querySelectorAll('[lang]')],
+              fallbackSelector1,
+              true
+            );
+            if (fallbackText1) return fallbackText1;
+
+            const articleText = clean(mainTweet.innerText);
+            dbg(`article innerText fallback length=${articleText.length}`);
+            if (articleText.length > 20) return articleText;
+          }
+
+          dbg('x.com fallback exhausted, continuing to generic extraction');
         }
         const isThreads = /threads\.(net|com)/.test(url);
         if (isThreads) {
@@ -75,7 +182,9 @@ const DistillSourceBlock = {
         const body = article || document.body;
         const clone = body.cloneNode(true);
         clone.querySelectorAll('nav,footer,header,aside,script,style,[class*="ad"],[class*="sidebar"]').forEach(e => e.remove());
-        return clean(clone.innerText);
+        const text = clean(clone.innerText);
+        dbg(`generic extraction length=${text.length}`);
+        return text;
       }
     });
     const text = result?.result || '';

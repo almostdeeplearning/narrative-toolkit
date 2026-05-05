@@ -1,6 +1,22 @@
 // cs_ai.js — injected into chatgpt.com, gemini.google.com, claude.ai
 // Detects which AI we're on, injects pending prompt, captures response, sends back
 
+function hasValidExtensionContext() {
+  try {
+    return !!(globalThis.chrome && chrome.runtime && chrome.runtime.id);
+  } catch {
+    return false;
+  }
+}
+
+function logInvalidContext(stage) {
+  console.warn(`[NT] Extension context invalidated on ${location.hostname}${stage ? ` @ ${stage}` : ''}, aborting content script`);
+}
+
+if (!hasValidExtensionContext()) {
+  logInvalidContext('bootstrap');
+} else {
+
 const HOST = location.hostname;
 const AI   = HOST.includes('chatgpt') ? 'gpt'
            : HOST.includes('gemini')  ? 'gemini'
@@ -36,11 +52,66 @@ const sel = SELECTORS[AI] || SELECTORS.gpt;
 let injected = false;
 let currentTag = null;
 
+async function safeStorageGet(keys, stage) {
+  if (!hasValidExtensionContext()) {
+    logInvalidContext(stage || 'storage.get');
+    return null;
+  }
+  try {
+    return await chrome.storage.local.get(keys);
+  } catch (err) {
+    if (/Extension context invalidated/i.test(String(err?.message || err))) {
+      logInvalidContext(stage || 'storage.get');
+      return null;
+    }
+    throw err;
+  }
+}
+
+async function safeStorageSet(payload, stage) {
+  if (!hasValidExtensionContext()) {
+    logInvalidContext(stage || 'storage.set');
+    return false;
+  }
+  try {
+    await chrome.storage.local.set(payload);
+    return true;
+  } catch (err) {
+    if (/Extension context invalidated/i.test(String(err?.message || err))) {
+      logInvalidContext(stage || 'storage.set');
+      return false;
+    }
+    throw err;
+  }
+}
+
+function safeSendMessage(message, stage) {
+  if (!hasValidExtensionContext()) {
+    logInvalidContext(stage || 'sendMessage');
+    return false;
+  }
+  try {
+    chrome.runtime.sendMessage(message);
+    return true;
+  } catch (err) {
+    if (/Extension context invalidated/i.test(String(err?.message || err))) {
+      logInvalidContext(stage || 'sendMessage');
+      return false;
+    }
+    throw err;
+  }
+}
+
 async function tryInject() {
   if (injected) return;
+  if (!hasValidExtensionContext()) {
+    logInvalidContext('tryInject:start');
+    return;
+  }
 
   // Find any pending prompt for this AI
-  const allKeys = await chrome.storage.local.get(null);
+  const allKeys = await safeStorageGet(null, 'tryInject:getAll');
+  if (!allKeys) return;
   let tag = null, prompt = null;
 
   for (const [k, v] of Object.entries(allKeys)) {
@@ -54,13 +125,17 @@ async function tryInject() {
 
   injected = true;
   currentTag = tag;
-  await chrome.storage.local.set({ [`ai_state_${tag}`]: 'injecting' });
+  if (!await safeStorageSet({ [`ai_state_${tag}`]: 'injecting' }, 'tryInject:setInjecting')) {
+    injected = false;
+    currentTag = null;
+    return;
+  }
 
   console.log(`[NT] Injecting tag=${tag} on ${AI}`);
 
   const inputEl = await waitForEl(sel.input, 15000);
   if (!inputEl) {
-    chrome.runtime.sendMessage({ type: 'ERROR', text: `找不到 ${AI} 輸入框` });
+    safeSendMessage({ type: 'ERROR', text: `找不到 ${AI} 輸入框` }, 'tryInject:noInput');
     injected = false; return;
   }
 
@@ -83,16 +158,17 @@ async function tryInject() {
   await trySubmit(inputEl);
 
   console.log(`[NT] Submitted, waiting for ${AI} response…`);
-  chrome.runtime.sendMessage({ type: 'LOG_DISTILL', text: `${AI} 接收中，等待回應…`, level: 'info' });
+  safeSendMessage({ type: 'LOG_DISTILL', text: `${AI} 接收中，等待回應…`, level: 'info' }, 'tryInject:submitted');
 
   const response = await waitForResponse(90000);
   if (!response) {
-    chrome.runtime.sendMessage({ type: 'ERROR', text: `${AI} 回應逾時` }); return;
+    safeSendMessage({ type: 'ERROR', text: `${AI} 回應逾時` }, 'tryInject:timeout');
+    return;
   }
 
   console.log(`[NT] Response captured, length=${response.length}`);
-  chrome.runtime.sendMessage({ type: 'AI_RESPONSE', tag, text: response });
-  await chrome.storage.local.set({ [`ai_state_${tag}`]: 'done', [`ai_prompt_${tag}`]: null });
+  if (!safeSendMessage({ type: 'AI_RESPONSE', tag, text: response }, 'tryInject:response')) return;
+  await safeStorageSet({ [`ai_state_${tag}`]: 'done', [`ai_prompt_${tag}`]: null }, 'tryInject:setDone');
 }
 
 async function trySubmit(inputEl) {
@@ -157,13 +233,25 @@ async function waitForEl(selectors, timeout) {
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ── Entry ─────────────────────────────────────────────────────────────────────
-setTimeout(tryInject, 2500);
+setTimeout(() => {
+  if (!hasValidExtensionContext()) {
+    logInvalidContext('entryTimeout');
+    return;
+  }
+  tryInject();
+}, 2500);
 
 // SPA navigation re-trigger
 let lastUrl = location.href;
 new MutationObserver(() => {
+  if (!hasValidExtensionContext()) {
+    logInvalidContext('mutationObserver');
+    return;
+  }
   if (location.href !== lastUrl) {
     lastUrl = location.href; injected = false;
     setTimeout(tryInject, 2500);
   }
 }).observe(document.body, { childList: true, subtree: true });
+
+}
