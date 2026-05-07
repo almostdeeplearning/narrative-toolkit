@@ -18,6 +18,204 @@ let expandedSchemaIdx = null;
 let extractSchemaId = null;
 
 let activeDistillContext = null; // 'distill' | 'flow' | null
+let currentLanguage = 'zh';
+
+const I18N = {
+  zh: {
+    nav_extract: '快速生成',
+    nav_flow: '自訂流程',
+    nav_prompts: 'Prompt 庫',
+    nav_schema: 'Schema 庫',
+    nav_settings: 'Settings',
+    hidden: '隱藏',
+    shown: '顯示',
+    expand: '展開',
+    collapse: '收合',
+    copy: '複製',
+    download: '⬇ 下載',
+    delete: '刪除',
+    stop: '停止',
+    save_flow: '儲存為預設流程',
+    preset_label: 'Preset：',
+    no_preset: '尚無 Preset',
+    status_label: '狀態：',
+    status_ready: '就緒',
+    status_stopped: '已停止',
+    status_running: '執行中...',
+    status_all_done: '✅ 全部完成',
+    status_sent_to_ai: '✅ 已送出，請至 AI Chat 查看',
+    status_trial_running: '試跑中，等待 {ai} 回覆...',
+    status_delay_waiting: '{label}，{seconds} 秒延遲等待中...',
+    status_send_distill_waiting: '05 - 送出整理，等待 {ai} 回覆中...',
+    run_all: '▶▶ Run all',
+    start_generation: '開始生成',
+    capture_current_reply: '截取當前回覆',
+    save_md: '⬇ 儲存 .md',
+    recent_extract: '最近萃取',
+    etl_card_prompt: '選擇分析任務',
+    etl_card_schema: '選擇輸出格式',
+    etl_card_ai: '選擇 AI 引擎',
+    etl_card_run: '開始生成',
+    etl_card_save: '結果確認與儲存',
+    etl_prompt_label: '分析任務（可手動修改）',
+    etl_prompt_helper: '選取上方 Prompt 後，可在這裡直接微調本次送出的內容',
+    etl_schema_none: '-不選擇schema格式-',
+    etl_progress_idle: '尚未開始',
+    etl_progress_idle_sub: '尚未開始執行',
+    etl_log_placeholder: '詳細執行記錄會顯示在這裡。',
+    etl_result_placeholder: '等待 Grok 回覆完成後，按「截取當前回覆」，可在這裡直接微調再儲存。',
+    cf_card_source: '擷取內容',
+    cf_card_task: '選擇分析',
+    cf_card_format: '選擇格式',
+    cf_card_ai: '選擇 AI',
+    cf_card_run: '整理結果',
+    cf_delay_label: '下一步前等',
+    cf_custom_delay: '自訂',
+    seconds: '秒',
+    cf_source_placeholder: '貼入長文，或點「抓取當前頁面」自動填入...',
+    grab_current_page: '⊕ 抓取當前頁面',
+    save_flow_draft: '存草稿',
+    cf_autosave: '執行完後自動存檔與下載（關閉時僅送至 AI Chat，不自動回收結果）',
+    no_prompt: '尚無 Prompt',
+    pick_series: '— 選擇系列 —',
+    pick_prompt: '— 選擇 Prompt —',
+    no_prompt_in_series: '此系列無 Prompt',
+    load_prompt_success: '已載入「{name}」，可直接在下方微調',
+    no_schema_empty: '尚無 Schema — 點下方「新增 Schema」建立第一個格式模板',
+    pick_schema_optional: '— 選擇 Schema 格式（選填）—',
+    no_extract_records: '尚無萃取記錄',
+    empty_pick_or_add_series: '← 選擇或新增系列',
+    empty_add_prompt: '尚無 Prompt<br>點下方「新增 Prompt」開始',
+  },
+  en: {
+    nav_extract: 'Quick Extract',
+    nav_flow: 'Workflow',
+    nav_prompts: 'Prompt Library',
+    nav_schema: 'Format Library',
+    nav_settings: 'Settings',
+    hidden: 'Hide',
+    shown: 'Show',
+    expand: 'Expand',
+    collapse: 'Collapse',
+    copy: 'Copy',
+    download: '⬇ Download',
+    delete: 'Delete',
+    stop: 'Stop',
+    save_flow: 'Save Workflow',
+    preset_label: 'Workflow',
+    no_preset: 'No saved workflows',
+    status_label: 'Status: ',
+    status_ready: 'Ready',
+    status_stopped: 'Stopped',
+    status_running: 'Running...',
+    status_all_done: '✅ Done',
+    status_sent_to_ai: '✅ Sent. Check the AI chat.',
+    status_trial_running: 'Waiting for {ai}...',
+    status_delay_waiting: '{label} - waiting {seconds}s...',
+    status_send_distill_waiting: 'Waiting for {ai} response...',
+    run_all: 'Run Workflow',
+    start_generation: 'Execute',
+    capture_current_reply: 'Capture Reply',
+    save_md: '⬇ Save .md',
+    recent_extract: 'Recent Runs',
+    etl_card_prompt: 'Select Task',
+    etl_card_schema: 'Output Format',
+    etl_card_ai: 'AI Model',
+    etl_card_run: 'Execute',
+    etl_card_save: 'Review',
+    etl_prompt_label: 'Task Prompt',
+    etl_prompt_helper: 'After you select a prompt above, you can edit it here before running.',
+    etl_schema_none: 'No format',
+    etl_progress_idle: 'Not started',
+    etl_progress_idle_sub: 'Ready to run',
+    etl_log_placeholder: 'Execution logs will appear here.',
+    etl_result_placeholder: 'After Grok finishes, click "Grab Reply" to review and save the response here.',
+    cf_card_source: 'Source',
+    cf_card_task: 'Task',
+    cf_card_format: 'Format',
+    cf_card_ai: 'Model',
+    cf_card_run: 'Run',
+    cf_delay_label: 'Delay',
+    cf_custom_delay: 'Custom',
+    seconds: 's',
+    cf_source_placeholder: 'Paste text here, or click "Capture Page" to fill it automatically.',
+    grab_current_page: 'Capture Page',
+    save_flow_draft: 'Save Draft',
+    cf_autosave: 'Auto-save results after each run. If disabled, results stay in the AI chat.',
+    no_prompt: 'No prompts yet',
+    pick_series: '— Select series —',
+    pick_prompt: '— Select prompt —',
+    no_prompt_in_series: 'No prompts in this series',
+    load_prompt_success: 'Loaded "{name}". You can edit it below.',
+    no_schema_empty: 'No formats yet — click "Add Schema" below to create your first format.',
+    pick_schema_optional: '— Select format (optional) —',
+    no_extract_records: 'No runs yet',
+    empty_pick_or_add_series: '← Select or add a series',
+    empty_add_prompt: 'No prompts yet<br>Click "Add Prompt" below to get started',
+  },
+};
+
+function t(key, vars = {}) {
+  const dict = I18N[currentLanguage] || I18N.zh;
+  const fallback = I18N.zh[key] || key;
+  const template = dict[key] || fallback;
+  return template.replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? `{${name}}`));
+}
+
+function getPromptCountLabel(count) {
+  return currentLanguage === 'en' ? `${count} chars` : `${count} 字`;
+}
+
+function applyI18n(root = document) {
+  root.querySelectorAll('[data-i18n]').forEach(el => {
+    el.innerHTML = t(el.dataset.i18n);
+  });
+  root.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.setAttribute('placeholder', t(el.dataset.i18nPlaceholder));
+  });
+}
+
+function setLanguage(lang, { persist = true } = {}) {
+  currentLanguage = lang === 'en' ? 'en' : 'zh';
+  document.documentElement.setAttribute('lang', currentLanguage === 'en' ? 'en' : 'zh-Hant');
+  document.documentElement.setAttribute('data-lang', currentLanguage);
+  $('langZhBtn')?.classList.toggle('active', currentLanguage === 'zh');
+  $('langEnBtn')?.classList.toggle('active', currentLanguage === 'en');
+  applyI18n(document);
+  refreshI18nUI();
+  if (persist) chrome.storage.local.set({ uiLanguage: currentLanguage });
+}
+
+function refreshI18nUI() {
+  renderExtractPromptPicker();
+  renderExtractSchemaPicker();
+  renderPrompts();
+  renderExtractLibrary();
+  renderSchemas();
+  renderTabbar();
+  renderCards();
+  CustomFlowController._renderTaskPicker?.();
+  CustomFlowController._renderFormatPicker?.();
+  CustomFlowController._applyAllCards?.();
+  document.querySelectorAll('[data-etl-toggle]').forEach(btn => {
+    const card = document.querySelector(`[data-etl-card="${btn.dataset.etlToggle}"]`);
+    btn.textContent = card?.classList.contains('cf-collapsed') ? t('expand') : t('hidden');
+  });
+  [
+    ['cfRawText', 'cfRawTextToggleBtn'],
+    ['cfSelectedPromptText', 'cfPromptPreviewToggleBtn'],
+    ['cfSchemaPreview', 'cfSchemaPreviewToggleBtn'],
+  ].forEach(([contentId, buttonId]) => {
+    const area = $(contentId);
+    const btn = $(buttonId);
+    if (!area || !btn) return;
+    btn.textContent = area.classList.contains('is-expanded') ? t('collapse') : t('expand');
+  });
+  if ($('cfCharCount') && $('cfRawText')) $('cfCharCount').textContent = getPromptCountLabel($('cfRawText').value.length);
+  if ($('progTxt')) setExtractRunState(extractRunState, { current: extractProgressCurrent, total: extractProgressTotal });
+}
+
+window.t = t;
 
 // ════════════════════════════════════════════════════════════════════════════
 //  Distill Blocks loaded via <script> tags in sidepanel.html (src/blocks/*.js)
@@ -74,7 +272,7 @@ const CustomFlowController = {
     // Source
     $('cfGrabPageBtn').addEventListener('click', () => this._grabPage());
     $('cfRawText').addEventListener('input', () => {
-      $('cfCharCount').textContent = $('cfRawText').value.length + ' 字';
+      $('cfCharCount').textContent = getPromptCountLabel($('cfRawText').value.length);
     });
     this._initExpandableArea('cfRawText', 'cfRawTextToggleBtn');
     this._initExpandableArea('cfSelectedPromptText', 'cfPromptPreviewToggleBtn');
@@ -179,7 +377,7 @@ const CustomFlowController = {
     const card = document.querySelector(`[data-cf-card="${name}"]`);
     if (card) card.classList.toggle('cf-collapsed', !this.cardVisible[name]);
     const btn = document.querySelector(`[data-cf-toggle="${name}"]`);
-    if (btn) btn.textContent = this.cardVisible[name] ? '隱藏' : '顯示';
+    if (btn) btn.textContent = this.cardVisible[name] ? t('hidden') : t('shown');
   },
 
   _applyAllCards() {
@@ -187,7 +385,7 @@ const CustomFlowController = {
       const card = document.querySelector(`[data-cf-card="${name}"]`);
       if (card) card.classList.toggle('cf-collapsed', !visible);
       const btn = document.querySelector(`[data-cf-toggle="${name}"]`);
-      if (btn) btn.textContent = visible ? '隱藏' : '顯示';
+      if (btn) btn.textContent = visible ? t('hidden') : t('shown');
     });
   },
 
@@ -313,14 +511,14 @@ const CustomFlowController = {
         cfBlockDelays: this.blockDelays,
       });
     }
-    if (!silent) showToast('Preset 已載入');
+    if (!silent) showToast(currentLanguage === 'en' ? 'Preset loaded' : 'Preset 已載入');
   },
 
   _renderPresetControls() {
     const sel = $('cfPresetSel');
     if (!sel) return;
     if (!this.presets.length) {
-      sel.innerHTML = '<option value="">尚無 Preset</option>';
+      sel.innerHTML = `<option value="">${t('no_preset')}</option>`;
       sel.disabled = true;
       if ($('cfDeletePresetBtn')) $('cfDeletePresetBtn').disabled = true;
       return;
@@ -358,7 +556,7 @@ const CustomFlowController = {
       cfDefaultPresetId: this.defaultPresetId,
     });
     this._renderPresetControls();
-    showToast(`已儲存 Preset：${name}`);
+    showToast(currentLanguage === 'en' ? `Preset saved: ${name}` : `已儲存 Preset：${name}`);
   },
 
   async loadSelectedPreset() {
@@ -380,13 +578,13 @@ const CustomFlowController = {
       cfDefaultPresetId: this.defaultPresetId,
     });
     this._renderPresetControls();
-    showToast(`已刪除 Preset：${preset.name}`);
+    showToast(currentLanguage === 'en' ? `Preset deleted: ${preset.name}` : `已刪除 Preset：${preset.name}`);
   },
 
   _renderTaskPicker() {
     const sel = $('cfSeriesSel');
     if (!sel) return;
-    sel.innerHTML = '<option value="">— 不使用 Prompt 庫 —</option>' +
+      sel.innerHTML = `<option value="">${currentLanguage === 'en' ? '— No prompt library —' : '— 不使用 Prompt 庫 —'}</option>` +
       series.map(s =>
         `<option value="${s.id}"${s.id === this.seriesId ? ' selected' : ''}>${esc(s.name)}</option>`
       ).join('');
@@ -397,7 +595,7 @@ const CustomFlowController = {
     const sel = $('cfPromptSel');
     if (!sel) return;
     if (!this.seriesId) {
-      sel.innerHTML = '<option value="">— 先選擇 Prompt 系列 —</option>';
+      sel.innerHTML = `<option value="">${currentLanguage === 'en' ? '— Select a prompt series first —' : '— 先選擇 Prompt 系列 —'}</option>`;
       sel.disabled = true;
       this.promptIdx = null;
       this._updateSelectedArea();
@@ -405,7 +603,7 @@ const CustomFlowController = {
     }
     const s = series.find(x => x.id === this.seriesId);
     if (!s?.prompts.length) {
-      sel.innerHTML = '<option value="">此系列無 Prompt</option>';
+      sel.innerHTML = `<option value="">${t('no_prompt_in_series')}</option>`;
       sel.disabled = true;
       this.promptIdx = null;
       this._updateSelectedArea();
@@ -433,7 +631,7 @@ const CustomFlowController = {
   _renderFormatPicker() {
     const sel = $('cfSchemaSel');
     if (!sel) return;
-    sel.innerHTML = '<option value="">— 不用 Schema，直接存草稿 —</option>' +
+    sel.innerHTML = `<option value="">${currentLanguage === 'en' ? '— No format (draft only) —' : '— 不用 Schema，直接存草稿 —'}</option>` +
       schemaTemplates.map(s =>
         `<option value="${s.id}"${s.id === this.schemaId ? ' selected' : ''}>${esc(s.name)}</option>`
       ).join('');
@@ -449,8 +647,8 @@ const CustomFlowController = {
     el.removeAttribute('data-empty');
   },
 
-  _showResultEmpty(message = '尚未產生結果') {
-    if ($('cfResultName')) $('cfResultName').textContent = '結果';
+  _showResultEmpty(message = currentLanguage === 'en' ? 'No result yet' : '尚未產生結果') {
+    if ($('cfResultName')) $('cfResultName').textContent = currentLanguage === 'en' ? 'Result' : '結果';
     if ($('cfResultEmpty')) {
       $('cfResultEmpty').textContent = message;
       $('cfResultEmpty').style.display = '';
@@ -492,7 +690,7 @@ const CustomFlowController = {
     if (!el) return;
     el.classList.remove('success', 'error', 'warn');
     if (level === 'success' || level === 'error' || level === 'warn') el.classList.add(level);
-    el.innerHTML = `<span class="label">狀態：</span>${esc(text)}`;
+    el.innerHTML = `<span class="label">${t('status_label')}</span>${esc(text)}`;
   },
 
   _log(text, level = 'info') {
@@ -515,11 +713,11 @@ const CustomFlowController = {
       const r = msg.results[0];
       this._showResultContent(r);
       this._log('✅ 整理完成並已存檔！', 'success');
-      this._setGlobalStatus('✅ 全部完成', 'success');
+      this._setGlobalStatus(t('status_all_done'), 'success');
     } else {
-      this._showResultEmpty('此次未自動回收結果。請至 AI 對話框查看。');
+      this._showResultEmpty(currentLanguage === 'en' ? 'Result was not collected automatically. Please check the AI chat.' : '此次未自動回收結果。請至 AI 對話框查看。');
       this._log('✅ 已送出，請至 AI 對話框查看', 'success');
-      this._setGlobalStatus('✅ 已送出，請至 AI Chat 查看', 'success');
+      this._setGlobalStatus(t('status_sent_to_ai'), 'success');
     }
   },
 
@@ -647,7 +845,7 @@ const CustomFlowController = {
       }
     });
     const text = result?.result || '';
-    if ($('cfRawText')) { $('cfRawText').value = text; $('cfCharCount').textContent = text.length + ' 字'; }
+    if ($('cfRawText')) { $('cfRawText').value = text; $('cfCharCount').textContent = getPromptCountLabel(text.length); }
     this._log(`已抓取頁面 ${text.length} 字`, 'success');
   },
 
@@ -692,9 +890,9 @@ const CustomFlowController = {
 
     activeDistillContext = 'flow';
     this._setRunUI(true);
-    this._showResultEmpty('執行中，等待結果…');
+    this._showResultEmpty(currentLanguage === 'en' ? 'Running, waiting for result…' : '執行中，等待結果…');
     this._log(`送出整理（${fmtLabel}，${this.getAI()}）…`, 'info');
-    this._setGlobalStatus(`試跑中，等待 ${this.getAI().toUpperCase()} 回覆...`);
+    this._setGlobalStatus(t('status_trial_running', { ai: this.getAI().toUpperCase() }));
     chrome.runtime.sendMessage({
       type:     'START_DISTILL',
       source:   'flow',
@@ -755,7 +953,7 @@ const CustomFlowController = {
 
     const sync = () => {
       const expanded = area.classList.contains('is-expanded');
-      btn.textContent = expanded ? '收合' : '展開';
+      btn.textContent = expanded ? t('collapse') : t('expand');
       btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
     };
 
@@ -778,18 +976,18 @@ const CustomFlowController = {
 
   _statusLabelForCard(name) {
     return ({
-      source: '01 - 抓取來源內容',
-      task: '02 - 套用 Prompt',
-      format: '03 - 套用 Schema',
-      ai: '04 - 設定目標 AI',
-      run: '05 - 送出整理',
+      source: currentLanguage === 'en' ? '01 - Capture source' : '01 - 抓取來源內容',
+      task: currentLanguage === 'en' ? '02 - Apply prompt' : '02 - 套用 Prompt',
+      format: currentLanguage === 'en' ? '03 - Apply format' : '03 - 套用 Schema',
+      ai: currentLanguage === 'en' ? '04 - Choose model' : '04 - 設定目標 AI',
+      run: currentLanguage === 'en' ? '05 - Run' : '05 - 送出整理',
     })[name] || name;
   },
 
   async _waitWithStatus(name, delay) {
     for (let remaining = delay; remaining > 0; remaining--) {
       if (this.stopRequested) return false;
-      this._setGlobalStatus(`${this._statusLabelForCard(name)}，${remaining} 秒延遲等待中...`);
+      this._setGlobalStatus(t('status_delay_waiting', { label: this._statusLabelForCard(name), seconds: remaining }));
       await new Promise(r => setTimeout(r, 1000));
     }
     return !this.stopRequested;
@@ -800,7 +998,7 @@ const CustomFlowController = {
     chrome.runtime.sendMessage({ type: 'STOP' });
     this._setRunUI(false);
     this._setGlobalRunUI(false);
-    this._setGlobalStatus('已停止', 'warn');
+    this._setGlobalStatus(t('status_stopped'), 'warn');
     this._log('已停止', 'warn');
   },
 
@@ -812,7 +1010,7 @@ const CustomFlowController = {
 
     this.stopRequested = false;
     this._setGlobalRunUI(true);
-    this._setGlobalStatus('執行中...');
+    this._setGlobalStatus(t('status_running'));
 
     // Build pipeline state as blocks execute
     const pipeline = {
@@ -876,7 +1074,7 @@ const CustomFlowController = {
     order.forEach(name => this._highlightCard(name, false));
     if (!this.isRunning) {
       this._setGlobalRunUI(false);
-      if (!this.stopRequested) this._setGlobalStatus('就緒');
+      if (!this.stopRequested) this._setGlobalStatus(t('status_ready'));
     }
   },
 
@@ -919,9 +1117,9 @@ const CustomFlowController = {
 
     activeDistillContext = 'flow';
     this._setRunUI(true);
-    this._showResultEmpty('執行中，等待結果…');
+    this._showResultEmpty(currentLanguage === 'en' ? 'Running, waiting for result…' : '執行中，等待結果…');
     this._log(`送出（${fmtLabel} → ${ai}）…`, 'info');
-    this._setGlobalStatus(`05 - 送出整理，等待 ${ai.toUpperCase()} 回覆中...`);
+    this._setGlobalStatus(t('status_send_distill_waiting', { ai: ai.toUpperCase() }));
     console.log('[CF runAll] Sending START_DISTILL with ai:', ai, '| fullAuto: true | prompt length:', wikiTpl.length);
 
     chrome.runtime.sendMessage({
@@ -962,7 +1160,7 @@ function initETLTab() {
     const card = etlSteps.querySelector(`[data-etl-card="${btn.dataset.etlToggle}"]`);
     if (!card) return;
     const hidden = card.classList.toggle('cf-collapsed');
-    btn.textContent = hidden ? '展開' : '隱藏';
+    btn.textContent = hidden ? t('expand') : t('hidden');
   });
 }
 
@@ -1006,7 +1204,7 @@ async function loadSettings() {
     'prompts', 'extractAI', 'distillAI', 'delaySeconds',
     'fullAuto', 'autoDownload', 'draftFolder',
     'wikiTpl', 'noteTpl', 'extractFolder', 'distillFolder',
-    'promptSeries', 'popupFontSize', 'popupTextContrast', 'uiTheme', 'lastTab',
+    'promptSeries', 'popupFontSize', 'popupTextContrast', 'uiTheme', 'uiLanguage', 'lastTab',
     'currentSeriesId', 'extractSeriesId', 'distillSeriesId', 'distillPromptIdx',
     'schemaTemplates', 'extractSchemaId', 'distillSchemaId',
     'cfCardVisible', 'cfSeriesId', 'cfPromptIdx', 'cfSchemaId', 'cfAI', 'cfAutoSave', 'cfBlockDelays',
@@ -1040,6 +1238,7 @@ async function loadSettings() {
   applyTheme(d.uiTheme || 'nt-dark');
   applyPopupFontSize(d.popupFontSize || 'standard');
   applyPopupTextContrast(d.popupTextContrast || 'standard');
+  setLanguage(d.uiLanguage || 'zh', { persist: false });
 
   $('delayInput').value        = d.delaySeconds || 35;
   syncExtractDelayControls(d.delaySeconds || 35);
@@ -1097,6 +1296,8 @@ function syncExtractDelayControls(delayValue) {
 function bindAll() {
   document.querySelectorAll('.tab').forEach(t =>
     t.addEventListener('click', () => switchTab(t.dataset.tab)));
+  document.querySelectorAll('#langToggle [data-lang]').forEach(btn =>
+    btn.addEventListener('click', () => setLanguage(btn.dataset.lang)));
 
   // Extract run
   $('startBtn').addEventListener('click', startExtract);
@@ -1359,7 +1560,7 @@ window.editPrompt = (i, v, persist = true) => {
 function renderPrompts() {
   const el = $('promptList');
   if (!prompts.length) {
-    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text3);font-size:11px">尚無 Prompt</div>';
+    el.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text3);font-size:11px">${t('no_prompt')}</div>`;
     if (extractRunState === 'idle') setExtractRunState('idle', { current: 0, total: 0 });
     return;
   }
@@ -1405,33 +1606,35 @@ function setExtractRunState(state, opts = {}) {
   switch (state) {
     case 'idle':
       progFill.style.width = '0%';
-      progTxt.textContent = total > 0 ? `0 / ${total}` : '尚未開始';
-      progSubtxt.textContent = '尚未送出 Prompt';
+      progTxt.textContent = total > 0 ? `0 / ${total}` : t('etl_progress_idle');
+      progSubtxt.textContent = currentLanguage === 'en' ? 'No prompts sent yet' : '尚未送出 Prompt';
       break;
     case 'waiting':
       progFill.style.width = `${fillPct}%`;
-      progTxt.textContent = total > 0 ? `${current} / ${total}` : '尚未開始';
-      progSubtxt.textContent = current > 0 ? `已送出 ${current} 個 Prompt` : '正在送出 Prompt';
+      progTxt.textContent = total > 0 ? `${current} / ${total}` : t('etl_progress_idle');
+      progSubtxt.textContent = current > 0
+        ? (currentLanguage === 'en' ? `${current} prompt(s) sent` : `已送出 ${current} 個 Prompt`)
+        : (currentLanguage === 'en' ? 'Sending prompts...' : '正在送出 Prompt');
       break;
     case 'prompt_done':
       progFill.style.width = `${fillPct}%`;
-      progTxt.textContent = total > 0 ? `${current} / ${total}` : '尚未開始';
-      progSubtxt.textContent = `已送出第 ${current} 個 Prompt`;
+      progTxt.textContent = total > 0 ? `${current} / ${total}` : t('etl_progress_idle');
+      progSubtxt.textContent = currentLanguage === 'en' ? `Prompt ${current} sent` : `已送出第 ${current} 個 Prompt`;
       break;
     case 'all_done':
       progFill.style.width = '100%';
-      progTxt.textContent = total > 0 ? `${total} / ${total}` : '完成';
-      progSubtxt.textContent = '全部 Prompt 已送出';
+      progTxt.textContent = total > 0 ? `${total} / ${total}` : (currentLanguage === 'en' ? 'Done' : '完成');
+      progSubtxt.textContent = currentLanguage === 'en' ? 'All prompts sent' : '全部 Prompt 已送出';
       break;
     case 'error':
       progFill.style.width = `${fillPct}%`;
-      progTxt.textContent = total > 0 ? `${current} / ${total}` : '尚未開始';
-      progSubtxt.textContent = '本輪執行失敗';
+      progTxt.textContent = total > 0 ? `${current} / ${total}` : t('etl_progress_idle');
+      progSubtxt.textContent = currentLanguage === 'en' ? 'This run failed' : '本輪執行失敗';
       break;
     case 'stopped':
       progFill.style.width = `${fillPct}%`;
-      progTxt.textContent = total > 0 ? `${current} / ${total}` : '尚未開始';
-      progSubtxt.textContent = '已手動停止';
+      progTxt.textContent = total > 0 ? `${current} / ${total}` : t('etl_progress_idle');
+      progSubtxt.textContent = currentLanguage === 'en' ? 'Stopped manually' : '已手動停止';
       break;
   }
 }
@@ -1628,7 +1831,7 @@ async function renderExtractLibrary() {
   $('extractLibCount').textContent = items.length || '';
   el.innerHTML = items.length
     ? items.slice(0, 8).map(libItemHtml).join('')
-    : '<div style="padding:6px 0;font-size:10px;color:var(--text3)">尚無萃取記錄</div>';
+    : `<div style="padding:6px 0;font-size:10px;color:var(--text3)">${t('no_extract_records')}</div>`;
 }
 
 async function copyDocByName(name) {
@@ -1652,6 +1855,7 @@ async function saveSettings() {
     extractFolder: $('extractFolder').value.trim(),
     distillFolder: $('distillFolder').value.trim(),
     uiTheme:       $('themeSel')?.value || 'nt-dark',
+    uiLanguage:    currentLanguage,
   });
   $('saveOk').classList.add('on');
   setTimeout(() => $('saveOk').classList.remove('on'), 2000);
@@ -1725,7 +1929,7 @@ function appendLog(id, t, l) {
 // ── Extract Prompt Picker ─────────────────────────────────────────────────────
 function renderExtractPromptPicker() {
   const sel = $('extractSeriesSel');
-  sel.innerHTML = '<option value="">— 選擇系列 —</option>' +
+  sel.innerHTML = `<option value="">${t('pick_series')}</option>` +
     series.map(s => `<option value="${s.id}"${s.id === extractSeriesId ? ' selected' : ''}>${esc(s.name)}</option>`).join('');
   renderExtractPromptList();
 }
@@ -1733,15 +1937,15 @@ function renderExtractPromptPicker() {
 function renderExtractPromptList() {
   const list = $('extractPromptList');
   if (!extractSeriesId) {
-    list.innerHTML = '<option value="">— 選擇 Prompt —</option>';
+    list.innerHTML = `<option value="">${t('pick_prompt')}</option>`;
     return;
   }
   const s = series.find(x => x.id === extractSeriesId);
   if (!s?.prompts.length) {
-    list.innerHTML = '<option value="">此系列無 Prompt</option>';
+    list.innerHTML = `<option value="">${t('no_prompt_in_series')}</option>`;
     return;
   }
-  list.innerHTML = '<option value="">— 選擇 Prompt —</option>' +
+  list.innerHTML = `<option value="">${t('pick_prompt')}</option>` +
     s.prompts.map((p, i) =>
       `<option value="${s.id}|${i}">${esc(p.name)}</option>`
     ).join('');
@@ -1754,7 +1958,7 @@ window.addFromLib = (sid, idx) => {
   prompts = [{ name: p.name, text: p.text, status: 'pending' }];
   chrome.storage.local.set({ prompts });
   renderPrompts();
-  elog(`已載入「${p.name}」，可直接在下方微調`, 'success');
+  elog(t('load_prompt_success', { name: p.name }), 'success');
 };
 
 // ── Schema Templates ──────────────────────────────────────────────────────────
@@ -1762,7 +1966,7 @@ function renderSchemas() {
   const area = $('schemaCards');
   if (!area) return;
   if (!schemaTemplates.length) {
-    area.innerHTML = '<div class="empty-dot"></div><div style="text-align:center;color:var(--text3);font-size:12px">尚無 Schema — 點下方「新增 Schema」建立第一個格式模板</div>';
+    area.innerHTML = `<div class="empty-dot"></div><div style="text-align:center;color:var(--text3);font-size:12px">${t('no_schema_empty')}</div>`;
     return;
   }
   area.innerHTML = schemaTemplates.map((s, i) => {
@@ -1872,7 +2076,7 @@ function delSchema(idx) {
 // ── Extract Schema Picker ─────────────────────────────────────────────────────
 function renderExtractSchemaPicker() {
   const sel = $('extractSchemaSel');
-  sel.innerHTML = '<option value="">— 選擇 Schema 格式（選填）—</option>' +
+  sel.innerHTML = `<option value="">${t('pick_schema_optional')}</option>` +
     schemaTemplates.map(s =>
       `<option value="${s.id}"${s.id === extractSchemaId ? ' selected' : ''}>${esc(s.name)}</option>`
     ).join('');
@@ -2071,7 +2275,7 @@ function showToast(msg) {
 let _saveToastTimer = null;
 function _showSaveToast() {
   clearTimeout(_saveToastTimer);
-  _saveToastTimer = setTimeout(() => showToast('已儲存'), 800);
+  _saveToastTimer = setTimeout(() => showToast(currentLanguage === 'en' ? 'Saved' : '已儲存'), 800);
 }
 
 function renderTabbar() {
@@ -2081,7 +2285,9 @@ function renderTabbar() {
   bar.innerHTML = `
     <div class="series-select-wrap">
       <select class="select-compact series-select" id="seriesSelect"${hasSeries ? '' : ' disabled'}>
-        <option value="">${hasSeries ? '— 選擇 Prompt 系列 —' : '尚無 Prompt 系列'}</option>
+        <option value="">${hasSeries
+          ? (currentLanguage === 'en' ? '— Select Prompt Series —' : '— 選擇 Prompt 系列 —')
+          : (currentLanguage === 'en' ? 'No prompt series yet' : '尚無 Prompt 系列')}</option>
         ${series.map(s => `
           <option value="${s.id}"${s.id === currentSeriesId ? ' selected' : ''}>
             ${esc(s.name)} (${s.prompts.length})
@@ -2139,7 +2345,7 @@ function renderCards() {
   const s = series.find(x => x.id === currentSeriesId);
   if (!s) {
     closeEditSeriesForm();
-    area.innerHTML = `<div class="empty-state"><div class="empty-dot"></div><div class="empty-state-text">← 選擇或新增系列</div></div>`;
+    area.innerHTML = `<div class="empty-state"><div class="empty-dot"></div><div class="empty-state-text">${t('empty_pick_or_add_series')}</div></div>`;
     addRow.style.display = 'none';
     return;
   }
@@ -2147,7 +2353,7 @@ function renderCards() {
   addRow.style.display = '';
 
   if (!s.prompts.length) {
-    area.innerHTML = `<div class="empty-state"><div class="empty-dot"></div><div class="empty-state-text">尚無 Prompt<br>點下方「新增 Prompt」開始</div></div>`;
+    area.innerHTML = `<div class="empty-state"><div class="empty-dot"></div><div class="empty-state-text">${t('empty_add_prompt')}</div></div>`;
     return;
   }
 

@@ -68,6 +68,7 @@ This document summarizes the current data contracts used by the extension. It is
 | Key | Type | Purpose |
 |---|---|---|
 | `uiTheme` | `"nt-dark" \| "editorial-light" \| "studio-light"` | Side Panel theme selection |
+| `uiLanguage` | `"zh" \| "en"` | Minimal visible-UI language preference used by the Topnav language toggle |
 | `popupFontSize` | `"standard" \| "comfortable" \| "large"` | Font size mode |
 | `popupTextContrast` | `"standard" \| "bright" \| "max"` | Text contrast mode |
 

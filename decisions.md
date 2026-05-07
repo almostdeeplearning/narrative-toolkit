@@ -327,3 +327,27 @@
 - **Reason:** 自動擷取經常抓到前一輪或其他卡片送出的舊回覆，問題核心不在 timeout 文案，而在「系統猜測目前應該抓哪一則回覆」這件事本身不可靠。
 - **Alternatives considered:** 保留自動擷取、只調整 timeout 文案；繼續優化 `pollGrok()` selector 與輪詢時機；完全移除 ETL 的結果處理區、要求使用者自行複製貼上。
 - **Expected impact:** ETL 的送出與結果回收責任切分更清楚；使用者可自行決定 Grok 回覆完成後的截取時機，降低抓錯回覆的風險；Card 05 成為結果確認、微調與儲存的明確出口。
+
+## Decision 44
+- **Decision:** 在分享版先加入最小 `中文 / English` 切換，僅覆蓋目前可見的 Side Panel UI labels，並將偏好儲存在 `chrome.storage.local.uiLanguage`。
+- **Date:** 2026-05-07
+- **created:** 05-07 21
+- **Reason:** 目前使用者需要對外展示與分享擴充功能，但完整 i18n 系統會擴大改動範圍；以小字典與 Topnav toggle 先覆蓋可見文案，可在不改動 DOM ids、storage keys、prompt/schema/user preset 內容的前提下快速提供英文介面。
+- **Alternatives considered:** 直接導入完整 i18n 架構（超出本次釋出需求）；只翻 Topnav 不翻工作流內容（對外展示仍不完整）；改以瀏覽器語系自動切換（不可控，且分享版需要明確可切換入口）。
+- **Expected impact:** 分享版可在中文與英文之間快速切換；文件、storage 與內部程式命名不需大規模重構；後續若要正式導入完整 i18n，仍可在現有 key/dictionary 基礎上擴充。
+
+## Decision 45
+- **Decision:** 將已下架的 `tab-distill` 舊 UI shell 從 `sidepanel.html` 移除，但保留 `Distill*Block` 檔名與底層 runtime 路徑，暫不進行內部重命名。
+- **Date:** 2026-05-07
+- **created:** 05-07 21
+- **Reason:** 分享版只需要目前可見的 Side Panel surface；保留已下架 Tab 的 DOM 會干擾英文文案校稿與 UI 維護判讀，但立即重命名整批 `Distill*Block` 又會把本次需求擴大成重構任務。
+- **Alternatives considered:** 保留 dormant DOM shell（造成文件與實際 UI surface 不一致）；同步將 `Distill*Block`、storage key、message path 全面改名為 Workflow（改動過大，風險高）；重新接回 Distill Tab（不符合目前產品方向）。
+- **Expected impact:** 分享版文件與實際 UI surface 對齊；對外不再出現已下架 Distill 面板；內部仍可沿用既有 `START_DISTILL` 與 `Distill*Block` 路徑，降低本次改動風險。
+
+## Decision 46
+- **Decision:** 分享版英文模式的可見 UI 不再維持過重的 mono / all-caps 呈現；優先以較短的英文產品文案搭配一般 UI 字體，僅保留必要的結構性 mono 元素。
+- **Date:** 2026-05-07
+- **created:** 05-07 21
+- **Reason:** 最小語言切換雖已可用，但在英文模式下，Workflow card title、Delay label、Topnav label 與小按鈕若持續使用過度壓縮的 mono 與全大寫，會讓分享版看起來更像開發介面而非可對外展示的產品 UI。
+- **Alternatives considered:** 維持既有字體策略只改翻譯文字（英文觀感仍生硬）；全面重做整套字體系統（超出這次分享版需求）；只針對單一句子調 wording、不動樣式（無法解決整體觀感問題）。
+- **Expected impact:** 英文模式下的 Topnav、Workflow、ETL 關鍵按鈕與 helper copy 更接近產品介面語氣；現有結構與 DOM 不需重組；後續若要擴大英文 surface，可在 `data-lang="en"` 基礎上繼續做更細的樣式分流。

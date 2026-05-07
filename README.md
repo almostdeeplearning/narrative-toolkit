@@ -2,7 +2,7 @@
 
 Narrative Toolkit 是一個 Chrome Extension，用來把網頁內容、X/Grok 萃取結果與 AI 整理流程集中在同一個工具介面中。
 
-目前版本以 Chrome Side Panel 為主介面，固定在瀏覽器右側，頁面導航時保持開啟；目前主要可見入口為快速生成、自訂流程、Prompt 庫、Schema 庫與設定。Distill Tab 已下架，相關共用 block 暫時保留於程式中。
+目前版本以 Chrome Side Panel 為主介面，固定在瀏覽器右側，頁面導航時保持開啟；目前主要可見入口為快速生成、自訂流程、Prompt 庫、Schema 庫與設定，並提供最小 `中文 / English` 切換。Distill Tab 已下架，相關共用 block 暫時保留於程式中。
 
 Implementation note:
 
@@ -13,7 +13,8 @@ Implementation note:
 
 - **Side Panel 遷移完成（2026-05-03）**：主介面改為 `sidepanel.html`；`popup.html` 保留作為開發參考。
 - **主 UI 腳本重命名完成（2026-05-04）**：主要工作流邏輯已從 `src/popup.js` 改為 `src/sidepanel.js`。
-- **Distill Tab 已下架（2026-05-05）**：Topnav 入口已移除，UI 不再初始化；相關 `Distill*Block` 仍保留，供 Custom Flow 共用。
+- **Distill Tab 已下架（2026-05-05）**：Topnav 入口已移除；目前 `sidepanel.html` 也不再保留 `tab-distill` 舊 UI shell；相關 `Distill*Block` 仍保留，供 Custom Flow 共用。
+- **分享版最小雙語切換完成（2026-05-07, created: 05-07 21）**：Topnav 新增 `中文 / English` 切換，僅覆蓋目前可見 UI labels，偏好儲存於 `uiLanguage`。
 - **UI 可讀性全面調整（2026-05-05）**：基礎字體放大（body 14px、按鈕 12px、label 11px、輸入框 15px）；顏色對比提升（`--text2` → `#B8B2A6`、`--text3` → `#7A7468`）；背景改為微暖深灰（`--bg` → `#13110F`）；新增 `.select-compact` 共用 class，以 `appearance: none` 繞過 Chrome OS native `<select>` 渲染，統一所有 dropdown 字型。
 - **Custom Flow Tab 完成並測試通過（2026-05-03）**：5 個可組合的 Block Card，支援延遲設定與一鍵跑完全部。
 - **Theme system + ETL / Custom Flow 工作流收斂（2026-05-07, created: 05-07 17）**：新增 `nt-dark` / `editorial-light` / `studio-light`；ETL 改為半手動結果回收；Custom Flow 的全域執行區移入 Card 05。
@@ -113,6 +114,7 @@ narrative-toolkit/
 ### Settings
 
 - 自動化、下載資料夾設定。
+- Topnav 最小語言切換：`中文` / `English`。
 - Theme selector：`nt-dark` / `editorial-light` / `studio-light`。
 - 字體大小（standard / comfortable / large）、文字對比（standard / bright / max）設定。
 - 以上偏好設定套疊於基礎 CSS 預設值之上（body 14px、按鈕 12px、label 11px、輸入框 15px；背景 `#13110F`）。

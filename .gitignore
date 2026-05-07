@@ -7,6 +7,9 @@ Desktop.ini
 *.swp
 *.swo
 
+#Personal notes and drafts
+docs/dev-journey/
+
 # Local secrets and environment overrides
 .env
 .env.*

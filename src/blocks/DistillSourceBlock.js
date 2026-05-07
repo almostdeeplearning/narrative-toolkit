@@ -41,33 +41,33 @@ const DistillSourceBlock = {
       <div class="cf-card" data-cf-card="source">
         <div class="cf-card-head">
           <span class="cf-card-num">01</span>
-          <span class="cf-card-title">擷取內容</span>
+          <span class="cf-card-title" data-i18n="cf_card_source">擷取內容</span>
           <div class="cf-delay-meta">
-            <span class="cf-delay-label">下一步前等</span>
+            <span class="cf-delay-label" data-i18n="cf_delay_label">下一步前等</span>
             <select class="cf-delay-sel" data-cf-delay-for="source">
               <option value="0">0</option>
               <option value="2">2</option>
               <option value="5">5</option>
               <option value="10">10</option>
               <option value="20">20</option>
-              <option value="custom">自訂</option>
+              <option value="custom" data-i18n="cf_custom_delay">自訂</option>
             </select>
-            <input class="cf-delay-custom" type="number" min="0" max="300" data-cf-custom-for="source" style="display:none" placeholder="秒">
-            <span class="cf-delay-unit">秒</span>
+            <input class="cf-delay-custom" type="number" min="0" max="300" data-cf-custom-for="source" style="display:none" data-i18n-placeholder="seconds" placeholder="秒">
+            <span class="cf-delay-unit" data-i18n="seconds">秒</span>
           </div>
-          <button class="btn btn-ghost btn-xs" data-cf-toggle="source">隱藏</button>
+          <button class="btn btn-ghost btn-xs" data-cf-toggle="source" data-i18n="hidden">隱藏</button>
         </div>
         <div class="cf-card-body">
           <div class="row row-between" style="margin-bottom:8px">
             <span class="char-count" id="cfCharCount">0 字</span>
             <div class="row" style="gap:6px">
-              <button class="btn btn-ghost btn-xs" id="cfRawTextToggleBtn">展開</button>
-              <button class="btn btn-sm" id="cfGrabPageBtn">⊕ 抓取當前頁面</button>
+              <button class="btn btn-ghost btn-xs" id="cfRawTextToggleBtn" data-i18n="expand">展開</button>
+              <button class="btn btn-sm" id="cfGrabPageBtn" data-i18n="grab_current_page">⊕ 抓取當前頁面</button>
             </div>
           </div>
-          <textarea class="ta cf-source-textarea" id="cfRawText" rows="4" placeholder="貼入長文，或點「抓取當前頁面」自動填入..."></textarea>
+          <textarea class="ta cf-source-textarea" id="cfRawText" rows="4" data-i18n-placeholder="cf_source_placeholder" placeholder="貼入長文，或點「抓取當前頁面」自動填入..."></textarea>
           <div class="row" style="justify-content:flex-end;margin-top:10px">
-            <button class="btn" id="cfSaveDraftBtn">存草稿</button>
+            <button class="btn" id="cfSaveDraftBtn" data-i18n="save_flow_draft">存草稿</button>
           </div>
         </div>
       </div>

@@ -8,8 +8,8 @@ const ETLCard3Block = {
       <div class="cf-card etl-card" data-etl-card="ai">
         <div class="cf-card-head">
           <span class="cf-card-num etl-card-num">03</span>
-          <span class="cf-card-title etl-card-title">選擇 AI 引擎</span>
-          <button class="btn btn-ghost btn-xs" data-etl-toggle="ai">隱藏</button>
+          <span class="cf-card-title etl-card-title" data-i18n="etl_card_ai">選擇 AI 引擎</span>
+          <button class="btn btn-ghost btn-xs" data-etl-toggle="ai" data-i18n="hidden">隱藏</button>
         </div>
         <div class="cf-card-body etl-card-body">
           <div class="ai-pills" id="extractAiSel">

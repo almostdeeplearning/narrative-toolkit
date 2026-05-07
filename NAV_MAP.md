@@ -17,6 +17,7 @@ This document maps the current Chrome Extension Side Panel UI, DOM IDs, JavaScri
   - Body fills Side Panel height (`100%`); width is user-controlled by dragging the panel edge.
   - Load order: Distill block files → ETL Card block files → `src/sidepanel.js` → `src/popup-ui-patch.js`.
   - Must not contain inline `<script>...</script>` or inline event handlers.
+  - 目前不再保留 `tab-distill` 的 dormant DOM shell；分享版可見面只包含 Extract / Flow / Prompts / Schema / Settings。
 
 - `src/blocks/` (plain-script files, loaded before sidepanel.js)
   - Distill blocks:
@@ -43,9 +44,10 @@ This document maps the current Chrome Extension Side Panel UI, DOM IDs, JavaScri
 
 - `src/sidepanel.js`
   - Main workflow logic, storage, message sending, render functions, and event binding.
-  - Distill-related logic remains organized into 5 Block objects: `DistillSourceBlock`, `DistillTaskBlock`, `DistillFormatBlock`, `DistillAIBlock`, `DistillRunBlock`, but the Distill Tab UI is currently down-ranked and not initialized in Phase 1. The shared `renderCF()` / getter parts are still used by Custom Flow.
+  - Distill-related logic remains organized into 5 Block objects: `DistillSourceBlock`, `DistillTaskBlock`, `DistillFormatBlock`, `DistillAIBlock`, `DistillRunBlock`. 雖然命名仍為 Distill，但目前已沒有對外 Distill Tab；共享的 `renderCF()` / getter 路徑仍供 Custom Flow 使用。
   - ETL Tab DOM is rendered by `initETLTab()` using `ETLCard1–5Block`; this must run synchronously at the start of DOMContentLoaded before `popup-ui-patch.js` step-state initialization.
   - Height/width UI preference functions removed (`applyPopupHeight` deleted; width init removed).
+  - Minimal language toggle lives in Topnav; `setLanguage()` / `refreshI18nUI()` apply `uiLanguage` only to visible UI labels in the current release.
 
 - `src/popup-ui-patch.js`
   - CSP-safe UI glue for Topnav-compatible navigation, step state, and distill prompt preview visibility.
@@ -72,16 +74,17 @@ Topbar actions (shown/hidden per tab):
 
 - `topbarPromptsActions` — currently an empty compatibility container; Prompt actions now live inside the Prompts tab content area
 - `topbarSchemaActions` — currently an empty compatibility container; Schema actions now live inside the Schema tab content area
+- `langToggle` — Topnav `中文 / English` switch; persists `uiLanguage`
 
 Storage key:
 
 - `lastTab`
+- `uiLanguage`
 
-Phase 1 Distill off-ramp note:
+Distill off-ramp note:
 
-- `tab-distill` still exists in `sidepanel.html` as a dormant DOM shell for now, but there is no topnav entry.
-- `switchTab('distill')` is now redirected to `flow`.
-- Distill `renderDistill()` / `init()` calls are disabled during `DOMContentLoaded`.
+- `switchTab('distill')` is still redirected to `flow`.
+- 舊 Distill UI shell 已自 `sidepanel.html` 移除；目前保留的是共用的 `Distill*Block` 內部模組，而非對外 Tab。
 
 ## Extract Tab
 
@@ -266,78 +269,14 @@ Storage key:
 
 - `library`, filtered to `fmt === "extract"`
 
-## Distill Tab
+## Distill Legacy Surface
 
-> ⚠️ **Deprecated (Phase 1 off-ramp)**
-> This tab is no longer accessible from the UI. The following describes legacy structure kept for internal reference only.
+> ⚠️ **Deprecated**
+> `tab-distill` 已自 `sidepanel.html` 移除；本節只保留作為命名與 runtime 路徑的背景說明。
 
-Panel: `tab-distill`
-
-### Source Text
-
-DOM IDs:
-
-- `charCount`
-- `grabPageBtn`
-- `rawText`
-
-JS bindings:
-
-- `grabPageBtn click` calls `grabPage()`
-- `rawText input` updates `charCount`
-
-Chrome APIs:
-
-- `chrome.tabs.query`
-- `chrome.scripting.executeScript`
-
-### Schema And Prompt Selection
-
-DOM IDs:
-
-- `saveDraftBtn` — saves raw text as draft without AI
-- `distillSchemaSel` — schema template dropdown
-- `clearDistillSchemaBtn` — clears schema selection
-- `distillSchemaPreview` — `<pre>` preview of selected schema text
-- `distillSeriesSel` — series dropdown for prompt picker
-- `clearDistillPromptBtn` — clears series/prompt selection
-- `distillPromptList` — chip row of prompts from selected series
-- `distillSelectedPromptArea` — shown when a prompt is selected
-- `distillSelectedPromptText` — preview of selected prompt text
-
-JS bindings (owned by `DistillSourceBlock`, `DistillTaskBlock`, `DistillFormatBlock`):
-
-- `saveDraftBtn click` → `DistillRunBlock.saveDraft()`
-- `distillSchemaSel change` → `DistillFormatBlock` updates internal `schemaId`, calls `_updatePreview()`
-- `clearDistillSchemaBtn click` → `DistillFormatBlock` clears `schemaId`
-- `distillSeriesSel change` → `DistillTaskBlock` updates internal `seriesId`, clears `promptIdx`, re-renders
-- `clearDistillPromptBtn click` → `DistillTaskBlock` clears selection
-- `distillPromptList click [data-action="selectDistillPrompt"]` → `DistillTaskBlock._selectPrompt(idx)`
-- `initDistillSelectedPromptArea()` in `src/popup-ui-patch.js` shows/hides preview based on `data-empty`
-
-Storage keys:
-
-- `library`
-- `distillFolder`
-- `schemaTemplates`
-- `distillSchemaId`
-- `promptSeries`
-- `distillSeriesId`
-- `distillPromptIdx`
-
-### AI Distill
-
-DOM IDs:
-
-- `distillAiSelect`
-- `distillBtn`
-- `stopDistillBtn`
-- `cfAutoSaveDistill`
-- `distillLog`
-
-JS bindings (owned by `DistillAIBlock` and `DistillRunBlock`):
-
-- AI selector buttons (`.ai-pill`) → `DistillAIBlock` updates internal `ai`, saves to storage
+- `Distill*Block` 仍存在於 `src/blocks/`，並由 Custom Flow 透過 `renderCF()` / getter 路徑共用。
+- legacy storage / runtime names 仍可在 `distillFolder`、`distillAI`、`distillSeriesId`、`distillSchemaId`、`START_DISTILL` 等路徑中看到。
+- 若未來要重命名這批內部模組，應視為獨立重構任務，不屬於目前分享版 UI 範圍。
 - `distillBtn click` → `DistillRunBlock.startDistill()` (reads other blocks via public getters)
 - `stopDistillBtn click` sends `STOP`
 - `cfAutoSaveDistill change` stores to `cfAutoSave` immediately

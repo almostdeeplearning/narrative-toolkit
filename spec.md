@@ -11,13 +11,14 @@ The product should remain a compact, work-focused tool rather than a landing pag
 - Primary UI: Chrome Side Panel（`sidepanel.html`）。點擊 Extension 圖示開啟，固定在瀏覽器右側，頁面導航時保持開啟。
 - `popup.html` 保留作為開發參考，不再被 Extension 載入。
 - Main UI script: `src/sidepanel.js`.
+- Minimal language toggle: `中文 / English`, applied only to visible UI labels in the current release.
 - Core UI tabs:
   - 快速生成（X ETL）
   - 自訂流程（Custom Flow）
   - Prompt 庫
   - Schema 庫
   - Settings
-  - Distill Tab is currently down-ranked and no longer exposed in navigation; Custom Flow is the primary long-form organization entry.
+  - Distill Tab is no longer exposed in navigation or retained as a Side Panel DOM surface; Custom Flow is the primary long-form organization entry.
 
 ## User Goals
 
@@ -85,6 +86,7 @@ The product should remain a compact, work-focused tool rather than a landing pag
 - Store automation settings.
 - Store output folder settings for extract and distill workflows.
 - Store UI preferences:
+  - language（`zh` / `en`；current release limits translation to visible UI labels）
   - theme（`nt-dark` / `editorial-light` / `studio-light`）
   - font size（standard / comfortable / large；套疊於基礎 CSS 預設值 body 14px）
   - text contrast（standard / bright / max；套疊於基礎色票 `--text2` `#B8B2A6`、`--text3` `#7A7468`、`--bg` `#13110F`）

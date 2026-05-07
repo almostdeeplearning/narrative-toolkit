@@ -570,10 +570,10 @@ body {
   border: 1px solid var(--btn-border);
   background: var(--btn-bg);
   color: var(--btn-text);
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: 12px;
   font-weight: 500;
-  letter-spacing: 0.2px;
+  letter-spacing: 0;
   cursor: pointer;
   transition: all .15s;
   white-space: nowrap;
@@ -592,8 +592,8 @@ body {
 .btn-ghost { border-color: transparent; color: var(--text3); padding: 5px 7px; }
 .btn-ghost:hover { color: var(--text2); background: var(--accent-bg); border-color: transparent; }
 
-.btn-sm { padding: 4px 9px; font-size: 9px; }
-.btn-xs { padding: 3px 8px; font-size: 8px; }
+.btn-sm { padding: 4px 9px; font-size: 11px; }
+.btn-xs { padding: 3px 8px; font-size: 10px; }
 
 .btn-danger { color: var(--red); border-color: transparent; padding: 5px 7px; }
 .btn-danger:hover { border-color: var(--red); background: rgba(248,113,113,.07); }
@@ -1318,7 +1318,7 @@ body.font-large .cf-source-textarea { font-size: 16px; }
   max-height: 260px;
 }
 .selected-prompt-preview[data-empty]::before {
-  content: 'No prompt selected';
+  content: 'No prompt selected yet';
   font-style: italic;
   color: var(--text3);
 }
@@ -1670,10 +1670,10 @@ body.font-large .cf-source-textarea { font-size: 16px; }
 }
 .cf-delay-label,
 .cf-delay-unit {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.4px;
-  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0;
+  color: var(--text2);
   white-space: nowrap;
 }
 .cf-delay-sel {
@@ -1718,8 +1718,9 @@ body.font-large .cf-source-textarea { font-size: 16px; }
   border-radius: 3px; padding: 2px 6px; flex-shrink: 0;
 }
 .cf-card-title {
-  font-family: 'DM Mono', monospace; font-size: 14px;
-  letter-spacing: 1.5px; text-transform: uppercase;
+  font-family: var(--font-ui); font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.2px; text-transform: none;
   color: var(--text-heading); flex: 1;
 }
 .cf-card-body { padding: 14px; }
@@ -1819,6 +1820,31 @@ body { flex-direction: column; }
   flex-shrink: 0;
   border-left: 1px solid var(--line);
 }
+.lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg2);
+}
+.lang-toggle-btn {
+  border: 0;
+  background: transparent;
+  color: var(--text3);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.lang-toggle-btn.active {
+  background: var(--bg3);
+  color: var(--text);
+}
 
 /* Override vertical nav-item → horizontal */
 .nav-item {
@@ -1836,8 +1862,8 @@ body { flex-direction: column; }
   transition: color .15s, background .15s, border-color .15s, transform .15s;
 }
 .topnav-tabs .nav-item {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 1 1 auto;
+  min-width: 64px;
   height: 30px;
   background: transparent;
   border-color: transparent;
@@ -1858,8 +1884,11 @@ body { flex-direction: column; }
 }
 .nav-item.active::before { display: none; }
 .nav-label {
-  font-size: 11px;
-  letter-spacing: 1.5px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  text-transform: none;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -2033,16 +2062,16 @@ body { flex-direction: column; }
   <!-- Scrollable tab list (middle) -->
   <div class="topnav-tabs">
     <button class="tab nav-item active" data-tab="extract">
-      <span class="nav-label">快速生成</span>
+      <span class="nav-label" data-i18n="nav_extract">快速生成</span>
     </button>
     <button class="tab nav-item" data-tab="flow">
-      <span class="nav-label">自訂流程</span>
+      <span class="nav-label" data-i18n="nav_flow">自訂流程</span>
     </button>
     <button class="tab nav-item" data-tab="prompts">
-      <span class="nav-label">Prompt 庫</span>
+      <span class="nav-label" data-i18n="nav_prompts">Prompt 庫</span>
     </button>
     <button class="tab nav-item" data-tab="schema">
-      <span class="nav-label">Schema 庫</span>
+      <span class="nav-label" data-i18n="nav_schema">Schema 庫</span>
     </button>
   </div>
 
@@ -2050,6 +2079,10 @@ body { flex-direction: column; }
   <div class="topnav-actions">
     <div id="topbarPromptsActions" style="display:none"></div>
     <div id="topbarSchemaActions" style="display:none"></div>
+    <div class="lang-toggle" id="langToggle" aria-label="Language toggle">
+      <button class="lang-toggle-btn active" id="langZhBtn" type="button" data-lang="zh">中文</button>
+      <button class="lang-toggle-btn" id="langEnBtn" type="button" data-lang="en">English</button>
+    </div>
     <div class="ai-pills" id="topAiSelect" style="display:none">
       <button class="ai-pill active" data-ai="gpt">GPT</button>
       <button class="ai-pill" data-ai="gemini">Gemini</button>
@@ -2061,7 +2094,7 @@ body { flex-direction: column; }
         <path d="M12 8.25a3.75 3.75 0 1 0 0 7.5a3.75 3.75 0 0 0 0-7.5Z" stroke="currentColor" stroke-width="1.7"/>
         <path d="M19.03 12.87a7.92 7.92 0 0 0 .05-.87a7.92 7.92 0 0 0-.05-.87l2.02-1.57a.48.48 0 0 0 .12-.61l-1.91-3.3a.48.48 0 0 0-.58-.21l-2.39.96a7.2 7.2 0 0 0-1.5-.87l-.36-2.54a.47.47 0 0 0-.47-.4h-3.82a.47.47 0 0 0-.47.4l-.36 2.54c-.53.2-1.03.49-1.5.87l-2.39-.96a.48.48 0 0 0-.58.21L2.8 8.95a.48.48 0 0 0 .12.61l2.02 1.57a7.92 7.92 0 0 0-.05.87c0 .29.02.58.05.87L2.92 14.44a.48.48 0 0 0-.12.61l1.91 3.3c.12.2.36.29.58.21l2.39-.96c.46.38.97.67 1.5.87l.36 2.54c.04.23.23.4.47.4h3.82c.24 0 .43-.17.47-.4l.36-2.54c.53-.2 1.04-.49 1.5-.87l2.39.96c.22.08.46-.01.58-.21l1.91-3.3a.48.48 0 0 0-.12-.61l-2.02-1.57Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
       </svg>
-      <span class="nav-label">Settings</span>
+      <span class="nav-label" data-i18n="nav_settings">Settings</span>
     </button>
   </div>
 
@@ -2084,88 +2117,22 @@ body { flex-direction: column; }
       <div id="etlContainer"></div>
     </div>
 
-    <!-- ════ TAB: DISTILL（下架中，Phase 1 保留 DOM 不初始化） ════ -->
-    <div class="panel" id="tab-distill">
-
-      <div id="distillSourceMount"></div>
-
-      <div class="section">
-        <div class="section-head">
-          <div class="section-title">Schema 格式</div>
-          <button class="btn btn-sm" id="saveDraftBtn">💾 存草稿</button>
-        </div>
-        <div id="distillFormatMount"></div>
-
-        <!-- Prompt picker -->
-        <div class="row" style="gap:8px;margin-bottom:8px">
-          <div class="field-label" style="margin:0;white-space:nowrap">Prompt 庫</div>
-          <select id="distillSeriesSel" class="input" style="flex:1;height:30px;font-size:11px;padding:4px 8px"></select>
-          <button class="btn btn-xs" id="clearDistillPromptBtn">✕</button>
-        </div>
-        <div id="distillPromptList" class="chip-row"></div>
-        <div id="distillSelectedPromptArea" style="display:none">
-          <div class="field-label" style="margin-top:10px">已選 Prompt</div>
-          <pre class="selected-prompt-preview" id="distillSelectedPromptText" data-empty="1"></pre>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-head">
-          <div class="section-title">目標 AI</div>
-          <div id="distillAiMount"></div>
-        </div>
-        <div class="run-row" style="margin-top:0">
-          <button class="btn btn-primary" id="distillBtn">✦ AI 整理並存檔</button>
-          <button class="btn btn-danger" id="stopDistillBtn" style="display:none">停止</button>
-        </div>
-        <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3);cursor:pointer;margin-top:12px;user-select:none">
-          <input type="checkbox" id="cfAutoSaveDistill" checked style="accent-color:var(--text);width:13px;height:13px">
-          整理完成後自動存檔並下載
-        </label>
-        <div class="log-strip" id="distillLog" style="margin-top:10px"><span class="ll">就緒</span></div>
-      </div>
-
-      <!-- Result -->
-      <div id="distillResponseSection" style="display:none">
-        <div class="section">
-          <div class="section-head">
-            <div class="section-title" id="distillResultName">整理結果</div>
-            <div class="row" style="gap:4px">
-              <button class="btn btn-xs" id="copyDistillBtn">複製</button>
-              <button class="btn btn-xs" id="dlDistillBtn">⬇ 下載</button>
-            </div>
-          </div>
-          <pre class="result-pre" id="distillResponseText" style="max-height:280px"></pre>
-        </div>
-      </div>
-
-      <!-- Recent files -->
-      <div class="lib-section">
-        <div class="lib-toggle" id="distillLibToggle">
-          <span>最近整理</span>
-          <span class="lib-count" id="distillLibCount"></span>
-          <span class="lib-chevron" id="distillLibChevron">▾</span>
-        </div>
-        <div id="distillLibList" style="display:none;margin-top:4px"></div>
-      </div>
-    </div>
-
     <!-- ════ TAB: CUSTOM FLOW ════ -->
     <div class="panel" id="tab-flow">
 
       <div class="cf-preset-bar cf-preset-bar-top">
-        <span class="cf-preset-label">Preset：</span>
+        <span class="cf-preset-label" data-i18n="preset_label">Preset：</span>
         <select class="select-compact cf-preset-sel" id="cfPresetSel">
-          <option value="">尚無 Preset</option>
+          <option value="" data-i18n="no_preset">尚無 Preset</option>
         </select>
-        <button class="btn btn-xs" id="cfDeletePresetBtn">刪除</button>
+        <button class="btn btn-xs" id="cfDeletePresetBtn" data-i18n="delete">刪除</button>
       </div>
 
       <!-- Block cards are rendered programmatically by each DistillXXXBlock.renderCF() -->
       <div id="cfCards"></div>
 
       <div class="cf-preset-save-row">
-        <button class="btn btn-sm" id="cfSavePresetBtn">儲存為預設流程</button>
+        <button class="btn btn-sm" id="cfSavePresetBtn" data-i18n="save_flow">儲存為預設流程</button>
       </div>
 
     </div>

@@ -9,7 +9,7 @@ const DistillFormatBlock = {
     return `
       <div class="row" style="gap:8px;align-items:center;margin-bottom:6px">
         <select id="distillSchemaSel" class="input" style="flex:1;height:32px;font-size:11px;padding:4px 8px">
-          <option value="">-不選擇schema格式-</option>
+          <option value="" data-i18n="etl_schema_none">-不選擇schema格式-</option>
         </select>
         <button class="btn btn-xs" id="clearDistillSchemaBtn">✕</button>
       </div>
@@ -47,32 +47,32 @@ const DistillFormatBlock = {
       <div class="cf-card" data-cf-card="format">
         <div class="cf-card-head">
           <span class="cf-card-num">03</span>
-          <span class="cf-card-title">選擇格式</span>
+          <span class="cf-card-title" data-i18n="cf_card_format">選擇格式</span>
           <div class="cf-delay-meta">
-            <span class="cf-delay-label">下一步前等</span>
+            <span class="cf-delay-label" data-i18n="cf_delay_label">下一步前等</span>
             <select class="cf-delay-sel" data-cf-delay-for="format">
               <option value="0">0</option>
               <option value="2">2</option>
               <option value="5">5</option>
               <option value="10">10</option>
               <option value="20">20</option>
-              <option value="custom">自訂</option>
+              <option value="custom" data-i18n="cf_custom_delay">自訂</option>
             </select>
-            <input class="cf-delay-custom" type="number" min="0" max="300" data-cf-custom-for="format" style="display:none" placeholder="秒">
-            <span class="cf-delay-unit">秒</span>
+            <input class="cf-delay-custom" type="number" min="0" max="300" data-cf-custom-for="format" style="display:none" data-i18n-placeholder="seconds" placeholder="秒">
+            <span class="cf-delay-unit" data-i18n="seconds">秒</span>
           </div>
-          <button class="btn btn-ghost btn-xs" data-cf-toggle="format">隱藏</button>
+          <button class="btn btn-ghost btn-xs" data-cf-toggle="format" data-i18n="hidden">隱藏</button>
         </div>
         <div class="cf-card-body">
           <div class="row" style="gap:8px;margin-bottom:6px">
             <select id="cfSchemaSel" class="input" style="flex:1;height:30px;font-size:11px;padding:4px 8px">
-              <option value="">-不選擇schema格式-</option>
+              <option value="" data-i18n="etl_schema_none">-不選擇schema格式-</option>
             </select>
             <button class="btn btn-xs" id="cfClearSchemaBtn">✕</button>
           </div>
           <pre class="selected-prompt-preview cf-preview-panel" id="cfSchemaPreview" data-empty="1"></pre>
           <div class="row" style="justify-content:flex-end;margin-top:6px">
-            <button class="btn btn-ghost btn-xs" id="cfSchemaPreviewToggleBtn">展開</button>
+            <button class="btn btn-ghost btn-xs" id="cfSchemaPreviewToggleBtn" data-i18n="expand">展開</button>
           </div>
         </div>
       </div>
@@ -88,7 +88,8 @@ const DistillFormatBlock = {
 
   _renderPicker() {
     const sel = $('distillSchemaSel');
-    sel.innerHTML = '<option value="">-不選擇schema格式-</option>' +
+    if (!sel) return;
+    sel.innerHTML = `<option value="">${window.t ? t('etl_schema_none') : '-不選擇schema格式-'}</option>` +
       schemaTemplates.map(s =>
         `<option value="${s.id}"${s.id === this.schemaId ? ' selected' : ''}>${esc(s.name)}</option>`
       ).join('');
@@ -97,6 +98,7 @@ const DistillFormatBlock = {
 
   _updatePreview() {
     const el = $('distillSchemaPreview');
+    if (!el) return;
     const schema = this.getSelectedSchema();
     if (!schema) { el.textContent = ''; el.setAttribute('data-empty', '1'); return; }
     el.textContent = schema.text;

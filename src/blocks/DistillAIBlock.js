@@ -47,21 +47,21 @@ const DistillAIBlock = {
       <div class="cf-card" data-cf-card="ai">
         <div class="cf-card-head">
           <span class="cf-card-num">04</span>
-          <span class="cf-card-title">選擇 AI</span>
+          <span class="cf-card-title" data-i18n="cf_card_ai">選擇 AI</span>
           <div class="cf-delay-meta">
-            <span class="cf-delay-label">下一步前等</span>
+            <span class="cf-delay-label" data-i18n="cf_delay_label">下一步前等</span>
             <select class="cf-delay-sel" data-cf-delay-for="ai">
               <option value="0">0</option>
               <option value="2">2</option>
               <option value="5">5</option>
               <option value="10">10</option>
               <option value="20">20</option>
-              <option value="custom">自訂</option>
+              <option value="custom" data-i18n="cf_custom_delay">自訂</option>
             </select>
-            <input class="cf-delay-custom" type="number" min="0" max="300" data-cf-custom-for="ai" style="display:none" placeholder="秒">
-            <span class="cf-delay-unit">秒</span>
+            <input class="cf-delay-custom" type="number" min="0" max="300" data-cf-custom-for="ai" style="display:none" data-i18n-placeholder="seconds" placeholder="秒">
+            <span class="cf-delay-unit" data-i18n="seconds">秒</span>
           </div>
-          <button class="btn btn-ghost btn-xs" data-cf-toggle="ai">隱藏</button>
+          <button class="btn btn-ghost btn-xs" data-cf-toggle="ai" data-i18n="hidden">隱藏</button>
         </div>
         <div class="cf-card-body">
           <div class="ai-pills" id="cfAiSelect">
