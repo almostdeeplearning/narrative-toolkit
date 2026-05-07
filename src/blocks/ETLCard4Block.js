@@ -8,32 +8,29 @@ const ETLCard4Block = {
       <div class="cf-card etl-card" data-etl-card="run">
         <div class="cf-card-head">
           <span class="cf-card-num etl-card-num">04</span>
-          <span class="cf-card-title etl-card-title">RUN — 執行萃取</span>
+          <span class="cf-card-title etl-card-title">開始生成</span>
           <button class="btn btn-ghost btn-xs" data-etl-toggle="run">隱藏</button>
         </div>
         <div class="cf-card-body etl-card-body" id="stepSection2">
           <span id="sn2" style="display:none"></span>
           <span id="st2" style="display:none"></span>
+          <input id="delayInput" type="hidden" value="35">
           <div class="run-row">
-            <button class="btn btn-primary" id="startBtn">
+            <button class="btn btn-primary etl-run-cta" id="startBtn">
               <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M2 1.5l7 3.5-7 3.5V1.5z"/></svg>
-              開始萃取
+              開始生成
             </button>
             <button class="btn btn-danger" id="stopBtn" style="display:none">
               <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><rect x="2" y="2" width="6" height="6"/></svg>
               停止
             </button>
-            <div class="delay-group">
-              <span class="delay-label">等待</span>
-              <input class="delay-input" id="delayInput" type="number" value="35" min="10" max="120">
-              <span class="delay-label">秒</span>
-            </div>
           </div>
           <div class="progress" id="prog">
             <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
-            <div class="prog-label"><span id="progTxt">0 / 0</span></div>
+            <div class="prog-label"><span id="progTxt">尚未開始</span></div>
+            <div class="prog-subtxt" id="progSubtxt">尚未開始執行</div>
           </div>
-          <div class="log-strip" id="extractLog"><span class="ll">就緒</span></div>
+          <div class="log-strip" id="extractLog"><span class="ll log-placeholder" data-placeholder="1">詳細執行記錄會顯示在這裡。</span></div>
         </div>
       </div>
     `.trim();

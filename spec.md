@@ -12,10 +12,10 @@ The product should remain a compact, work-focused tool rather than a landing pag
 - `popup.html` 保留作為開發參考，不再被 Extension 載入。
 - Main UI script: `src/sidepanel.js`.
 - Core UI tabs:
-  - X ETL
-  - Custom Flow（自訂流程）
-  - Prompt Manager
-  - Schema
+  - 快速生成（X ETL）
+  - 自訂流程（Custom Flow）
+  - Prompt 庫
+  - Schema 庫
   - Settings
   - Distill Tab is currently down-ranked and no longer exposed in navigation; Custom Flow is the primary long-form organization entry.
 
@@ -40,15 +40,14 @@ The product should remain a compact, work-focused tool rather than a landing pag
   - Card 05 Save Result
 - Render the ETL UI from `ETLCard1–5Block.js` via `initETLTab()` before other DOM-dependent initialization.
 - Allow the user to select a prompt from a reusable prompt series using a dropdown.
-- Show a preview area for the selected prompt (`extractPromptPreview`).
+- Allow the selected prompt to become the single editable task area for the current ETL run.
 - Allow the user to optionally select a schema template to combine with each prompt.
 - Concatenate `prompt.text + "\n\n" + schema.text` before injecting into Grok.
 - Persist the selected ETL target AI in `extractAI` through Card 03.
 - Current implementation note: `extractAI` is UI/storage state only; `startExtract()` still opens and injects into Grok (`x.com/i/grok`).
 - Run the selected prompt against Grok.
-- Show extraction progress and logs.
-- Display Grok responses as a markdown result.
-- Allow copying or saving the result as a local `.md` file.
+- Show send progress and logs in Card 04.
+- Do not auto-capture Grok replies in ETL; Card 05 should allow the user to manually capture the current reply, edit it, and save it as a local `.md` file.
 
 ### Custom Flow
 
@@ -86,6 +85,7 @@ The product should remain a compact, work-focused tool rather than a landing pag
 - Store automation settings.
 - Store output folder settings for extract and distill workflows.
 - Store UI preferences:
+  - theme（`nt-dark` / `editorial-light` / `studio-light`）
   - font size（standard / comfortable / large；套疊於基礎 CSS 預設值 body 14px）
   - text contrast（standard / bright / max；套疊於基礎色票 `--text2` `#B8B2A6`、`--text3` `#7A7468`、`--bg` `#13110F`）
 

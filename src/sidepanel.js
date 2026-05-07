@@ -9,6 +9,9 @@ let currentSeriesId = null;
 let expandedCardIdx = null;
 let extractSeriesId = null;
 let lastExtractResult = null;
+let extractRunState = 'idle';
+let extractProgressCurrent = 0;
+let extractProgressTotal = 0;
 
 let schemaTemplates = [];
 let expandedSchemaIdx = null;
@@ -73,6 +76,9 @@ const CustomFlowController = {
     $('cfRawText').addEventListener('input', () => {
       $('cfCharCount').textContent = $('cfRawText').value.length + ' 字';
     });
+    this._initExpandableArea('cfRawText', 'cfRawTextToggleBtn');
+    this._initExpandableArea('cfSelectedPromptText', 'cfPromptPreviewToggleBtn');
+    this._initExpandableArea('cfSchemaPreview', 'cfSchemaPreviewToggleBtn');
 
     // Task
     $('cfSeriesSel').addEventListener('change', () => {
@@ -123,12 +129,6 @@ const CustomFlowController = {
     $('cfAutoSave').checked = d.cfAutoSave !== false;
     $('cfAutoSave').addEventListener('change', e =>
       chrome.storage.local.set({ cfAutoSave: e.target.checked }));
-    $('cfRunBtn').addEventListener('click', () => this.startFlow());
-    $('cfStopBtn').addEventListener('click', () => {
-      chrome.runtime.sendMessage({ type: 'STOP' });
-      this._setRunUI(false);
-      this._log('已停止', 'warn');
-    });
     $('cfSaveDraftBtn').addEventListener('click', () => this._saveDraft());
     if ($('cfCopyBtn')) {
       $('cfCopyBtn').addEventListener('click', () => {
@@ -748,6 +748,25 @@ const CustomFlowController = {
     chrome.storage.local.set({ cfBlockDelays: this.blockDelays });
   },
 
+  _initExpandableArea(contentId, buttonId) {
+    const area = $(contentId);
+    const btn = $(buttonId);
+    if (!area || !btn || btn.dataset.expandBound === '1') return;
+
+    const sync = () => {
+      const expanded = area.classList.contains('is-expanded');
+      btn.textContent = expanded ? '收合' : '展開';
+      btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    };
+
+    btn.dataset.expandBound = '1';
+    sync();
+    btn.addEventListener('click', () => {
+      area.classList.toggle('is-expanded');
+      sync();
+    });
+  },
+
   _getDelay(name) {
     return this.blockDelays[name] ?? 0;
   },
@@ -987,7 +1006,7 @@ async function loadSettings() {
     'prompts', 'extractAI', 'distillAI', 'delaySeconds',
     'fullAuto', 'autoDownload', 'draftFolder',
     'wikiTpl', 'noteTpl', 'extractFolder', 'distillFolder',
-    'promptSeries', 'popupFontSize', 'popupTextContrast', 'lastTab',
+    'promptSeries', 'popupFontSize', 'popupTextContrast', 'uiTheme', 'lastTab',
     'currentSeriesId', 'extractSeriesId', 'distillSeriesId', 'distillPromptIdx',
     'schemaTemplates', 'extractSchemaId', 'distillSchemaId',
     'cfCardVisible', 'cfSeriesId', 'cfPromptIdx', 'cfSchemaId', 'cfAI', 'cfAutoSave', 'cfBlockDelays',
@@ -1018,17 +1037,25 @@ async function loadSettings() {
     await chrome.storage.local.set({ schemaTemplates });
   }
 
+  applyTheme(d.uiTheme || 'nt-dark');
   applyPopupFontSize(d.popupFontSize || 'standard');
   applyPopupTextContrast(d.popupTextContrast || 'standard');
 
   $('delayInput').value        = d.delaySeconds || 35;
+  syncExtractDelayControls(d.delaySeconds || 35);
   $('fullAutoToggle').checked  = d.fullAuto !== false;
   $('autoDownload').checked    = d.autoDownload !== false;
   $('extractFolder').value     = d.extractFolder || d.draftFolder || '';
+  if ($('themeSel')) $('themeSel').value = d.uiTheme || 'nt-dark';
 
   if (d.lastTab) switchTab(d.lastTab);
 
   return d;
+}
+
+function applyTheme(theme) {
+  const next = ['nt-dark', 'editorial-light', 'studio-light'].includes(theme) ? theme : 'nt-dark';
+  document.documentElement.setAttribute('data-theme', next);
 }
 
 function applyPopupFontSize(size) {
@@ -1047,6 +1074,25 @@ function applyPopupTextContrast(mode) {
     b.classList.toggle('active', b.dataset.contrast === mode));
 }
 
+function syncExtractDelayControls(delayValue) {
+  const hidden = $('delayInput');
+  const preset = $('delayPresetSel');
+  const custom = $('delayCustomInput');
+  if (!hidden || !preset || !custom) return;
+
+  const next = Number.isFinite(Number(delayValue)) ? Math.max(0, parseInt(delayValue, 10)) : 35;
+  hidden.value = String(next);
+
+  if (['0', '5', '10', '35'].includes(String(next))) {
+    preset.value = String(next);
+    custom.style.display = 'none';
+  } else {
+    preset.value = 'custom';
+    custom.style.display = '';
+    custom.value = String(next);
+  }
+}
+
 // ── Event binding (non-Distill) ───────────────────────────────────────────────
 function bindAll() {
   document.querySelectorAll('.tab').forEach(t =>
@@ -1056,21 +1102,21 @@ function bindAll() {
   $('startBtn').addEventListener('click', startExtract);
   $('stopBtn').addEventListener('click', () => {
     chrome.runtime.sendMessage({ type: 'STOP' });
+    setExtractRunState('stopped');
     setRunUI(false); elog('已停止', 'warn');
   });
 
   // Extract result
-  $('copyExtractBtn').addEventListener('click', () => {
-    if (!lastExtractResult) return;
-    navigator.clipboard.writeText(lastExtractResult);
-    elog('已複製', 'success');
-  });
+  $('captureCurrentReplyBtn').addEventListener('click', captureCurrentExtractReply);
   $('saveExtractBtn').addEventListener('click', saveExtractResult);
 
   // Extract pickers
   $('extractSeriesSel').addEventListener('change', () => {
     extractSeriesId = $('extractSeriesSel').value || null;
     chrome.storage.local.set({ extractSeriesId });
+    prompts = [];
+    chrome.storage.local.set({ prompts });
+    renderPrompts();
     renderExtractPromptList();
   });
   $('extractSchemaSel').addEventListener('change', () => {
@@ -1078,6 +1124,28 @@ function bindAll() {
     chrome.storage.local.set({ extractSchemaId });
     updateExtractSchemaPreview();
   });
+  if ($('delayPresetSel') && $('delayCustomInput') && $('delayInput')) {
+    $('delayPresetSel').addEventListener('change', () => {
+      if ($('delayPresetSel').value === 'custom') {
+        $('delayCustomInput').style.display = '';
+        const next = parseInt($('delayCustomInput').value, 10) || parseInt($('delayInput').value, 10) || 35;
+        $('delayInput').value = String(next);
+        $('delayCustomInput').value = String(next);
+      } else {
+        $('delayCustomInput').style.display = 'none';
+        $('delayInput').value = $('delayPresetSel').value;
+      }
+    });
+    $('delayCustomInput').addEventListener('input', () => {
+      const next = parseInt($('delayCustomInput').value, 10);
+      if (Number.isFinite(next)) $('delayInput').value = String(Math.max(0, next));
+    });
+  }
+  if ($('themeSel')) {
+    $('themeSel').addEventListener('change', () => {
+      applyTheme($('themeSel').value);
+    });
+  }
 
   // Extract library
   $('extractLibToggle').addEventListener('click', () => {
@@ -1117,18 +1185,13 @@ function bindAll() {
   // Extract prompt dropdown picker
   $('extractPromptList').addEventListener('change', e => {
     const val = e.target.value;
-    const preview = $('extractPromptPreview');
     if (!val) {
-      if (preview) { preview.textContent = ''; preview.classList.remove('visible'); }
+      prompts = [];
+      chrome.storage.local.set({ prompts });
+      renderPrompts();
       return;
     }
     const [sid, idx] = val.split('|');
-    const s = series.find(x => x.id === sid);
-    const p = s?.prompts[Number(idx)];
-    if (p && preview) {
-      preview.textContent = p.text;
-      preview.classList.add('visible');
-    }
     addFromLib(sid, Number(idx));
   });
 
@@ -1295,7 +1358,11 @@ window.editPrompt = (i, v, persist = true) => {
 
 function renderPrompts() {
   const el = $('promptList');
-  if (!prompts.length) { el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text3);font-size:11px">尚無 Prompt</div>'; return; }
+  if (!prompts.length) {
+    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text3);font-size:11px">尚無 Prompt</div>';
+    if (extractRunState === 'idle') setExtractRunState('idle', { current: 0, total: 0 });
+    return;
+  }
   const ic = { pending: '○', running: '⏳', done: '✅', error: '❌' };
   el.innerHTML = prompts.map((p, i) => `
     <div class="pi ${p.status || ''}" id="pi${i}">
@@ -1304,6 +1371,7 @@ function renderPrompts() {
       <span class="pi-ico">${ic[p.status] || '○'}</span>
       <button class="pi-del" data-action="delPrompt" data-idx="${i}">✕</button>
     </div>`).join('');
+  if (extractRunState === 'idle') setExtractRunState('idle', { current: 0, total: getExtractPromptTotal() });
 }
 
 // ── Extract ───────────────────────────────────────────────────────────────────
@@ -1312,6 +1380,60 @@ function promptPreviewRows(text) {
   const lineCount = value.split('\n').length;
   const wrapEstimate = Math.ceil(value.length / 72);
   return Math.max(6, Math.min(16, lineCount + wrapEstimate));
+}
+
+function getExtractPromptTotal() {
+  return prompts.map(p => String(p?.text || '').trim()).filter(Boolean).length;
+}
+
+function setExtractRunState(state, opts = {}) {
+  extractRunState = state;
+  if (typeof opts.current === 'number') extractProgressCurrent = opts.current;
+  if (typeof opts.total === 'number') extractProgressTotal = opts.total;
+
+  const total = extractProgressTotal;
+  const current = extractProgressCurrent;
+  const fillPct = total > 0 ? Math.max(0, Math.min(100, Math.round((current / total) * 100))) : 0;
+  const prog = $('prog');
+  const progFill = $('progFill');
+  const progTxt = $('progTxt');
+  const progSubtxt = $('progSubtxt');
+  if (!prog || !progFill || !progTxt || !progSubtxt) return;
+
+  prog.classList.add('on');
+
+  switch (state) {
+    case 'idle':
+      progFill.style.width = '0%';
+      progTxt.textContent = total > 0 ? `0 / ${total}` : '尚未開始';
+      progSubtxt.textContent = '尚未送出 Prompt';
+      break;
+    case 'waiting':
+      progFill.style.width = `${fillPct}%`;
+      progTxt.textContent = total > 0 ? `${current} / ${total}` : '尚未開始';
+      progSubtxt.textContent = current > 0 ? `已送出 ${current} 個 Prompt` : '正在送出 Prompt';
+      break;
+    case 'prompt_done':
+      progFill.style.width = `${fillPct}%`;
+      progTxt.textContent = total > 0 ? `${current} / ${total}` : '尚未開始';
+      progSubtxt.textContent = `已送出第 ${current} 個 Prompt`;
+      break;
+    case 'all_done':
+      progFill.style.width = '100%';
+      progTxt.textContent = total > 0 ? `${total} / ${total}` : '完成';
+      progSubtxt.textContent = '全部 Prompt 已送出';
+      break;
+    case 'error':
+      progFill.style.width = `${fillPct}%`;
+      progTxt.textContent = total > 0 ? `${current} / ${total}` : '尚未開始';
+      progSubtxt.textContent = '本輪執行失敗';
+      break;
+    case 'stopped':
+      progFill.style.width = `${fillPct}%`;
+      progTxt.textContent = total > 0 ? `${current} / ${total}` : '尚未開始';
+      progSubtxt.textContent = '已手動停止';
+      break;
+  }
 }
 
 async function startExtract() {
@@ -1327,15 +1449,15 @@ async function startExtract() {
   const schema = schemaTemplates.find(s => s.id === extractSchemaId);
   const combined = promptTexts.map(pt => schema ? pt + '\n\n' + schema.text : pt);
 
-  const delay = parseInt($('delayInput').value) || 35;
-  await chrome.storage.local.set({ delaySeconds: delay });
   prompts.forEach(p => p.status = 'pending');
   chrome.storage.local.set({ prompts }); renderPrompts();
-  $('extractResultSection').style.display = 'none';
+  if ($('extractResultSection')) $('extractResultSection').style.display = '';
+  if ($('extractResultText')) $('extractResultText').value = '';
   lastExtractResult = null;
+  setExtractRunState('waiting', { current: 0, total: combined.length });
   setRunUI(true);
-  chrome.runtime.sendMessage({ type: 'START_EXTRACT', tabId: tabs[0].id, prompts: combined, delaySeconds: delay });
-  elog(`開始萃取 ${combined.length} 個 Prompt${schema ? '（含 Schema: ' + schema.name + '）' : ''}…`, 'info');
+  chrome.runtime.sendMessage({ type: 'START_EXTRACT', tabId: tabs[0].id, prompts: combined });
+  elog(`開始送出 ${combined.length} 個 Prompt${schema ? '（含 Schema: ' + schema.name + '）' : ''}…`, 'info');
 }
 
 async function syncPromptEditsFromDom() {
@@ -1352,25 +1474,133 @@ function setRunUI(on) {
   if (on && typeof setStep === 'function') setStep(2);
 }
 
+function makeShortTimestamp(date = new Date()) {
+  const yy = String(date.getFullYear()).slice(-2);
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}_${hh}-${min}`;
+}
+
+function sanitizeFilenameSegment(value, fallback = 'untitled') {
+  const cleaned = String(value || '')
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[. ]+$/g, '')
+    .slice(0, 48);
+  return cleaned || fallback;
+}
+
 // ── Extract result ────────────────────────────────────────────────────────────
+function getExtractResultContent() {
+  return $('extractResultText')?.value || '';
+}
+
+function setExtractResultContent(text) {
+  const next = String(text || '');
+  lastExtractResult = next;
+  if ($('extractResultText')) $('extractResultText').value = next;
+  if ($('extractResultSection')) $('extractResultSection').style.display = '';
+}
+
+function focusExtractResultEditor(placeCaretAtEnd = false) {
+  const el = $('extractResultText');
+  if (!el) return;
+  el.focus();
+  if (!placeCaretAtEnd || typeof el.setSelectionRange !== 'function') return;
+  const pos = el.value.length;
+  el.setSelectionRange(pos, pos);
+}
+
 function showExtractResult(responses) {
   const text = responses.map((r, i) =>
     `## #${r.index ?? i + 1}\n\n${r.response}`
   ).join('\n\n---\n\n');
-  lastExtractResult = text;
-  $('extractResultText').textContent = text;
-  $('extractResultSection').style.display = '';
+  setExtractResultContent(text);
+}
+
+function grabCurrentAssistantReply() {
+  const stored = (() => { try { return sessionStorage.getItem('_ntk_sent') || ''; } catch(_) { return ''; } })();
+  const sent = stored;
+  const norm = s => String(s || '').replace(/[\s​ ]+/g, ' ').trim();
+  const looksLikeSent = t => {
+    if (!sent) return false;
+    const tN = norm(t), sN = norm(sent);
+    return tN.slice(0, 100) === sN.slice(0, 100);
+  };
+
+  const primarySels = [
+    '[data-testid="messageText"]',
+    'div[class*="GrokMessage"]',
+    '[data-testid="tweetText"]',
+  ];
+  for (const s of primarySels) {
+    const all = [...document.querySelectorAll(s)].filter(e => {
+      const t = (e.innerText || '').trim();
+      return t.length > 10 && !looksLikeSent(t);
+    });
+    if (all.length) return all[all.length - 1].innerText || '';
+  }
+
+  for (const s of ['[role="article"] [lang]', 'article [lang]']) {
+    const all = [...document.querySelectorAll(s)];
+    for (let i = all.length - 1; i >= 0; i--) {
+      const t = (all[i].innerText || '').trim();
+      if (t.length > 10 && !looksLikeSent(t)) return t;
+    }
+  }
+
+  const root = document.querySelector('main') || document.body;
+  const blocks = [...root.querySelectorAll('p, div')].filter(e => {
+    if (e.querySelector('input, textarea, button, [role="button"]')) return false;
+    const t = (e.innerText || '').trim();
+    return t.length > 50 && !looksLikeSent(t);
+  });
+  return blocks.reduce((best, e) => {
+    const t = e.innerText || '';
+    return t.length > best.length ? t : best;
+  }, '');
+}
+
+async function captureCurrentExtractReply() {
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tabId = tabs[0]?.id;
+    if (!tabId) {
+      elog('找不到目前頁面，無法截取回覆', 'error');
+      return;
+    }
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: grabCurrentAssistantReply,
+    });
+    const text = String(result?.result || '').trim();
+    if (!text) {
+      elog('目前頁面尚未抓到可用回覆，請確認 Grok 對話已完成生成', 'warn');
+      return;
+    }
+    setExtractResultContent(text);
+    focusExtractResultEditor(true);
+    elog('已截取當前回覆，可在下方直接微調後儲存', 'success');
+  } catch (err) {
+    elog(`截取當前回覆失敗：${err?.message || err}`, 'error');
+  }
 }
 
 async function saveExtractResult() {
-  if (!lastExtractResult) { elog('尚無結果可儲存', 'error'); return; }
-  const tStr = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
-  const name = `extract_${tStr}.md`;
+  const content = getExtractResultContent().trim();
+  if (!content) { elog('尚無結果可儲存', 'error'); return; }
+  lastExtractResult = content;
+  const promptName = sanitizeFilenameSegment(prompts[0]?.name || 'prompt');
+  const tStr = makeShortTimestamp();
+  const name = `extract_${promptName}_${tStr}.md`;
   const stored = await chrome.storage.local.get(['library', 'extractFolder']);
   const lib = stored.library || [];
-  lib.unshift({ name, fmt: 'extract', content: lastExtractResult, chars: lastExtractResult.length, date: new Date().toLocaleDateString('zh-TW') });
+  lib.unshift({ name, fmt: 'extract', content, chars: content.length, date: new Date().toLocaleDateString('zh-TW') });
   await chrome.storage.local.set({ library: lib });
-  chrome.runtime.sendMessage({ type: 'DOWNLOAD_MD', name, content: lastExtractResult, folder: stored.extractFolder || '' });
+  chrome.runtime.sendMessage({ type: 'DOWNLOAD_MD', name, content, folder: stored.extractFolder || '' });
   renderExtractLibrary();
   elog(`✅ 已儲存並下載：${name}`, 'success');
 }
@@ -1385,9 +1615,8 @@ function libItemHtml(doc) {
     <span class="lib-name" title="${safeName}">${safeName}</span>
     <span class="lib-date">${doc.date}</span>
     <div class="lib-acts">
-      <button class="btn btn-ghost btn-xs" data-action="copyDocByName" data-name="${safeName}">複製</button>
-      <button class="btn btn-ghost btn-xs" data-action="dlDocByName"   data-name="${safeName}">⬇</button>
-      <button class="pi-del"              data-action="delDocByName"  data-name="${safeName}">✕</button>
+      <button class="lib-act-btn" title="複製" aria-label="複製" data-action="copyDocByName" data-name="${safeName}">⧉</button>
+      <button class="lib-act-btn lib-act-del" title="刪除" aria-label="刪除" data-action="delDocByName" data-name="${safeName}">✕</button>
     </div>
   </div>`;
 }
@@ -1422,6 +1651,7 @@ async function saveSettings() {
     autoDownload:  $('autoDownload').checked,
     extractFolder: $('extractFolder').value.trim(),
     distillFolder: $('distillFolder').value.trim(),
+    uiTheme:       $('themeSel')?.value || 'nt-dark',
   });
   $('saveOk').classList.add('on');
   setTimeout(() => $('saveOk').classList.remove('on'), 2000);
@@ -1435,9 +1665,9 @@ function listenBg() {
         if (msg.promptIndex !== undefined) {
           prompts[msg.promptIndex].status = msg.status; renderPrompts();
         }
-        $('prog').classList.add('on');
-        $('progFill').style.width = (msg.total ? Math.round(msg.current / msg.total * 100) : 0) + '%';
-        $('progTxt').textContent = `${msg.current} / ${msg.total}`;
+        if (msg.status === 'done') setExtractRunState('prompt_done', { current: msg.current || 0, total: msg.total || 0 });
+        else if (msg.status === 'error') setExtractRunState('error', { current: msg.current || 0, total: msg.total || 0 });
+        else setExtractRunState('waiting', { current: msg.current || 0, total: msg.total || 0 });
         break;
 
       case 'LOG_EXTRACT': elog(msg.text, msg.level); break;
@@ -1448,12 +1678,8 @@ function listenBg() {
 
       case 'EXTRACT_DONE':
         setRunUI(false);
-        if (msg.responses?.length) {
-          showExtractResult(msg.responses);
-          elog('✅ 萃取完成！請在下方儲存結果', 'success');
-        } else {
-          elog('✅ 萃取完成', 'success');
-        }
+        setExtractRunState('all_done', { current: msg.responses?.length || extractProgressTotal, total: msg.responses?.length || extractProgressTotal });
+        elog('✅ 全部 Prompt 已送出，請等待 Grok 回覆完成後，到下方手動截取', 'success');
         break;
 
       case 'DISTILL_DONE':
@@ -1463,6 +1689,7 @@ function listenBg() {
         break;
 
       case 'ERROR':
+        setExtractRunState('error');
         elog('❌ ' + msg.text, 'error');
         if (activeDistillContext === 'flow') {
           CustomFlowController.handleLog('❌ ' + msg.text, 'error');
@@ -1487,6 +1714,8 @@ function elog(t, l = 'info') { appendLog('extractLog', t, l); }
 function dlog(t, l = 'info') { appendLog('distillLog', t, l); }
 function appendLog(id, t, l) {
   const el = $(id);
+  if (!el) return;
+  el.querySelectorAll('[data-placeholder="1"]').forEach(node => node.remove());
   const d = document.createElement('div');
   d.className = `ll ${l}`;
   d.textContent = `[${ts()}] ${t}`;
@@ -1503,8 +1732,6 @@ function renderExtractPromptPicker() {
 
 function renderExtractPromptList() {
   const list = $('extractPromptList');
-  const preview = $('extractPromptPreview');
-  if (preview) { preview.textContent = ''; preview.classList.remove('visible'); }
   if (!extractSeriesId) {
     list.innerHTML = '<option value="">— 選擇 Prompt —</option>';
     return;
@@ -1524,10 +1751,10 @@ window.addFromLib = (sid, idx) => {
   const s = series.find(x => x.id === sid);
   if (!s) return;
   const p = s.prompts[idx];
-  prompts.push({ text: p.text, status: 'pending' });
+  prompts = [{ name: p.name, text: p.text, status: 'pending' }];
   chrome.storage.local.set({ prompts });
   renderPrompts();
-  elog(`已載入「${p.name}」`, 'success');
+  elog(`已載入「${p.name}」，可直接在下方微調`, 'success');
 };
 
 // ── Schema Templates ──────────────────────────────────────────────────────────

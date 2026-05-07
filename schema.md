@@ -50,7 +50,7 @@ This document summarizes the current data contracts used by the extension. It is
 |---|---|---|
 | `distillAI` | `AiTarget` | AI target for Distill |
 | `extractAI` | `AiTarget` | Selected target AI in X ETL Card 03; currently persisted UI state only |
-| `delaySeconds` | `number` | Grok wait duration |
+| `delaySeconds` | `number` | Legacy ETL wait setting retained in storage; current ETL send-only flow no longer uses it for auto-capture |
 | `fullAuto` | `boolean` | Whether workflows should auto-continue when possible |
 | `cfAutoSave` | `boolean` | Shared autosave flag used by both Distill and Custom Flow when sending `START_DISTILL.autoSave` |
 
@@ -67,6 +67,7 @@ This document summarizes the current data contracts used by the extension. It is
 
 | Key | Type | Purpose |
 |---|---|---|
+| `uiTheme` | `"nt-dark" \| "editorial-light" \| "studio-light"` | Side Panel theme selection |
 | `popupFontSize` | `"standard" \| "comfortable" \| "large"` | Font size mode |
 | `popupTextContrast` | `"standard" \| "bright" \| "max"` | Text contrast mode |
 
@@ -143,7 +144,7 @@ type CustomFlowPreset = {
 
 | Type | Purpose |
 |---|---|
-| `START_EXTRACT` | Start Grok extraction loop (combined prompt+schema text already embedded); currently Grok-only regardless of `extractAI` |
+| `START_EXTRACT` | Send combined ETL prompt+schema text to Grok; current ETL path is send-only and remains Grok-only regardless of `extractAI` |
 | `START_DISTILL` | Start AI distill flow; sent by both Distill Tab and Custom Flow |
 | `START_VERIFY_WIKI` | Start legacy wiki verification flow in `background.js`; not part of the current primary Side Panel product surface |
 | `RUN_AI_STRUCTURE` | Start legacy AI post-structuring flow in `background.js`; retained as a runtime handler but not used by the current ETL UI |
@@ -167,7 +168,7 @@ Notes:
 | `PROGRESS` | Update extraction progress |
 | `LOG_EXTRACT` | Append Extract log line |
 | `LOG_DISTILL` | Append Distill log line |
-| `EXTRACT_DONE` | Show completed Grok responses as markdown result |
+| `EXTRACT_DONE` | Signal that all ETL prompts have been sent; current UI uses it to stop the run state and prompt the user to capture the reply manually |
 | `DISTILL_DONE` | Show or record distill result |
 | `ERROR` | Display workflow error |
 
@@ -181,11 +182,11 @@ Notes:
 
 The X ETL pipeline no longer routes raw responses through a separate AI structuring step. The current UI is rendered as 5 ETL Cards (`ETLCard1–5Block.js`) and `initETLTab()` must run before `popup-ui-patch.js` expects the ETL DOM IDs to exist.
 
-1. Card 01: User selects a prompt series and prompt from `extractPromptList` (`<select>`), then reviews `extractPromptPreview`.
+1. Card 01: User selects a prompt series and prompt from `extractPromptList` (`<select>`); the selected text becomes the single editable task area for the current ETL run.
 2. Card 02: User selects an optional schema template.
 3. Card 03: User selects a target AI pill; this saves `extractAI`.
-4. Card 04: `startExtract()` concatenates `prompt.text + "\n\n" + schema.text` before injecting into Grok.
-5. Card 05: Grok responses are collected and displayed as markdown; user copies or saves the result as a `.md` file.
+4. Card 04: `startExtract()` concatenates `prompt.text + "\n\n" + schema.text` before injecting into Grok; the current ETL path is send-only and no longer auto-polls Grok replies.
+5. Card 05: User manually captures the current Grok reply, reviews/edits the text in `extractResultText`, then saves it as a `.md` file.
 
 The schema template system replaces the old post-structuring concept. `grokTpl` / `structureTpl` may still appear in older notes, but they are deprecated docs residue rather than active runtime storage keys or supported runtime contracts. There is no intermediate structured table review stage.
 

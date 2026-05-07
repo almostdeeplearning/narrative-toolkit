@@ -2,7 +2,7 @@
 
 Narrative Toolkit 是一個 Chrome Extension，用來把網頁內容、X/Grok 萃取結果與 AI 整理流程集中在同一個工具介面中。
 
-目前版本以 Chrome Side Panel 為主介面，固定在瀏覽器右側，頁面導航時保持開啟；目前主要可見入口為 X ETL、自訂流程、Prompt Manager、Schema 與設定。Distill Tab 已下架，相關共用 block 暫時保留於程式中。
+目前版本以 Chrome Side Panel 為主介面，固定在瀏覽器右側，頁面導航時保持開啟；目前主要可見入口為快速生成、自訂流程、Prompt 庫、Schema 庫與設定。Distill Tab 已下架，相關共用 block 暫時保留於程式中。
 
 Implementation note:
 
@@ -16,6 +16,7 @@ Implementation note:
 - **Distill Tab 已下架（2026-05-05）**：Topnav 入口已移除，UI 不再初始化；相關 `Distill*Block` 仍保留，供 Custom Flow 共用。
 - **UI 可讀性全面調整（2026-05-05）**：基礎字體放大（body 14px、按鈕 12px、label 11px、輸入框 15px）；顏色對比提升（`--text2` → `#B8B2A6`、`--text3` → `#7A7468`）；背景改為微暖深灰（`--bg` → `#13110F`）；新增 `.select-compact` 共用 class，以 `appearance: none` 繞過 Chrome OS native `<select>` 渲染，統一所有 dropdown 字型。
 - **Custom Flow Tab 完成並測試通過（2026-05-03）**：5 個可組合的 Block Card，支援延遲設定與一鍵跑完全部。
+- **Theme system + ETL / Custom Flow 工作流收斂（2026-05-07, created: 05-07 17）**：新增 `nt-dark` / `editorial-light` / `studio-light`；ETL 改為半手動結果回收；Custom Flow 的全域執行區移入 Card 05。
 - **Grok Distill 注入修正（2026-05-03）**：Grok 作為 Distill 目標時改用 `executeScript` 直接注入，與 ETL 機制一致。
 - **ETL Tab 全面重設計（2026-05-04）**：改為 5 張垂直時間軸 Card，並拆成 `ETLCard1–5Block.js`。
 - MV3 CSP 合規：所有頁面不使用 inline script，UI patch 邏輯放在 `src/popup-ui-patch.js`。
@@ -77,18 +78,18 @@ narrative-toolkit/
 ### X ETL
 
 - 以 5 張垂直時間軸 Card 組成：Prompt、Schema、目標 AI、執行萃取、儲存結果。
-- 從 Prompt 系列選取單一 Prompt；選取後會顯示本次執行用的 Prompt 預覽。
+- 從 Prompt 系列選取單一 Prompt；選取後會直接進入可手動修改的分析任務區。
 - 可選配 Schema 格式模板。
 - Card 03 可選擇目標 AI 並保存 `extractAI` 狀態，但目前 `startExtract()` 尚未接線到此設定，實際萃取仍固定使用 Grok。
 - Prompt 文字與 Schema 合併後注入 `x.com/i/grok`。
-- 顯示進度與 log。
-- 萃取完成後直接顯示 markdown 結果，可一鍵複製或儲存 `.md`。
+- Card 04 目前只負責送出 Prompt 與顯示送出進度 / log，不再自動輪詢或自動回填結果。
+- Card 05 由使用者在 Grok 回覆完成後手動截取當前回覆，於可編輯 textarea 中微調，再儲存 `.md`。
 
 ### 自訂流程（Custom Flow）
 
 - 5 個可獨立顯示／隱藏的 Block Card：Source（來源內容）、Task（Prompt 任務）、Format（輸出格式）、AI（目標 AI）、Run（執行整理）。
 - 每個 Block 可設定執行後的延遲時間（無延遲 / 2s / 5s / 10s / 20s / 自訂秒數）。
-- 「一鍵跑完全部」按序執行已顯示的 Block，每步執行後依延遲設定等待再繼續。
+- 「一鍵跑完全部」按序執行已顯示的 Block，每步執行後依延遲設定等待再繼續；全域執行控制目前集中於 Card 05。
 - 支援 Preset：可儲存、載入、刪除目前 Custom Flow 設定，並可指定預設 Preset。
 - 目前作為主要整理入口，承接原本 Distill 的整理工作流。
 - 目標 AI 支援 GPT / Gemini / Claude / Grok；Grok 使用與 X ETL 相同的直接注入機制。
@@ -112,6 +113,7 @@ narrative-toolkit/
 ### Settings
 
 - 自動化、下載資料夾設定。
+- Theme selector：`nt-dark` / `editorial-light` / `studio-light`。
 - 字體大小（standard / comfortable / large）、文字對比（standard / bright / max）設定。
 - 以上偏好設定套疊於基礎 CSS 預設值之上（body 14px、按鈕 12px、label 11px、輸入框 15px；背景 `#13110F`）。
 

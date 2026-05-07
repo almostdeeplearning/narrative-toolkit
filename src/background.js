@@ -34,7 +34,7 @@ chrome.runtime.onMessage.addListener((msg) => {
 // ════════════════════════════════════════════════════════════
 async function handleExtract({ tabId, prompts, delaySeconds, targetAI }) {
   stopped = false;
-  const responses = [];
+  let sentCount = 0;
 
   // Bring Grok tab to foreground so user can see the interaction,
   // then wait for the tab to finish re-rendering before injecting.
@@ -49,7 +49,7 @@ async function handleExtract({ tabId, prompts, delaySeconds, targetAI }) {
   );
   if (staleKeys.length) await chrome.storage.local.remove(staleKeys);
 
-  logE(`共 ${prompts.length} 個 Prompt，等待 ${delaySeconds}s/輪`, 'info');
+  logE(`共 ${prompts.length} 個 Prompt，準備送出`, 'info');
 
   for (let i = 0; i < prompts.length; i++) {
     if (stopped) { logE('已中止', 'warn'); return; }
@@ -59,34 +59,23 @@ async function handleExtract({ tabId, prompts, delaySeconds, targetAI }) {
 
     try {
       await execInTab(tabId, injectToGrok, [prompts[i]]);
-      logE(`等待 Grok 回應…`, 'info');
-      const resp = await pollGrok(tabId, delaySeconds * 1000, prompts[i]);
-      if (!resp) throw new Error('逾時');
-      responses.push({ index: i+1, prompt: prompts[i], response: resp });
+      sentCount++;
       bcast({ type: 'PROGRESS', current: i+1, total: prompts.length, promptIndex: i, status: 'done' });
-      logE(`✓ #${i+1} 完成`, 'success');
+      logE(`✓ #${i+1} 已送出`, 'success');
     } catch(e) {
       bcast({ type: 'PROGRESS', current: i+1, total: prompts.length, promptIndex: i, status: 'error' });
       logE(`✗ #${i+1}: ${e.message}`, 'error');
-      responses.push({ index: i+1, prompt: prompts[i], response: '[ERROR] ' + e.message });
     }
     if (i < prompts.length - 1 && !stopped) await sleep(2000);
   }
 
-  const successfulResponses = responses.filter(r => !String(r.response || '').startsWith('[ERROR]'));
-  if (!successfulResponses.length) {
-    bcast({ type: 'ERROR', text: 'Grok 擷取沒有成功回傳內容，已略過自動存檔。請確認 Grok chat 頁面已載入並可輸入。' });
+  if (!sentCount) {
+    bcast({ type: 'ERROR', text: '沒有成功送出任何 Prompt。請確認 Grok chat 頁面已載入並可輸入。' });
     return;
   }
 
-  await chrome.storage.local.set({ rawResponses: responses });
-
-  const ts   = new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
-  const name = `grok_raw_${ts}.md`;
-  const md   = buildRawMd(responses, ts);
-  await chrome.storage.local.set({ lastRawMd: md, lastRawMdName: name });
-
-  bcast({ type: 'EXTRACT_DONE', responses });
+  logE('全部 Prompt 已送出，請在回覆完成後手動截取。', 'success');
+  bcast({ type: 'EXTRACT_DONE' });
 }
 
 // ── Grok injection ─────────────────────────────────────────────────────────────

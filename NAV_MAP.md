@@ -56,10 +56,10 @@ The current UI uses a horizontally scrollable Topnav. The buttons still use `.na
 
 | Nav | Button selector | Panel ID | Purpose |
 |---|---|---|---|
-| Extract | `.nav-item[data-tab="extract"]` | `tab-extract` | X/Grok ETL workflow |
-| Flow | `.nav-item[data-tab="flow"]` | `tab-flow` | Custom Flow — composable 5-block automation pipeline |
-| Prompts | `.nav-item[data-tab="prompts"]` | `tab-prompts` | Prompt series manager |
-| Schema | `.nav-item[data-tab="schema"]` | `tab-schema` | Format template library |
+| 快速生成 | `.nav-item[data-tab="extract"]` | `tab-extract` | X/Grok ETL workflow |
+| 自訂流程 | `.nav-item[data-tab="flow"]` | `tab-flow` | Custom Flow — composable 5-block automation pipeline |
+| Prompt 庫 | `.nav-item[data-tab="prompts"]` | `tab-prompts` | Prompt series manager |
+| Schema 庫 | `.nav-item[data-tab="schema"]` | `tab-schema` | Format template library |
 | Settings | `.nav-item[data-tab="settings"]` | `tab-settings` | Automation, local storage, and layout |
 
 Navigation is coordinated by:
@@ -127,14 +127,13 @@ DOM IDs:
 - `stepSection1`
 - `extractSeriesSel` — series dropdown
 - `extractPromptList` — prompt dropdown (`<select>`)
-- `extractPromptPreview` — selected prompt preview area
-- `promptList` — legacy active prompt queue container; retained for compatibility with existing render/state code
+- `promptList` — single editable task area for the current ETL run
 
 JS bindings:
 
 - `extractSeriesSel change` updates `extractSeriesId`, then `renderExtractPromptList()`
-- `extractPromptList change` updates the selected prompt preview
-- `promptList` delegated delete/edit bindings remain for compatibility with existing prompt queue behavior
+- `extractPromptList change` replaces the current ETL task content with the selected prompt text
+- `promptList` delegated edit bindings update the actual content that `startExtract()` sends
 
 Render functions:
 
@@ -194,10 +193,11 @@ DOM IDs:
 - `stepSection2`
 - `startBtn`
 - `stopBtn`
-- `delayInput`
+- `delayInput` — hidden legacy compatibility field; no longer exposed as a visible ETL control
 - `prog`
 - `progFill`
 - `progTxt`
+- `progSubtxt`
 - `extractLog`
 
 JS bindings:
@@ -221,23 +221,28 @@ Storage keys:
 
 - `delaySeconds`
 
+Notes:
+
+- Card 04 is now send-only. It no longer auto-polls Grok or auto-fills Card 05.
+- `delayInput` / `delaySeconds` remain only as hidden compatibility state.
+
 ### Card 05: Save Result
 
 DOM IDs:
 
-- `extractResultSection` — hidden until extraction completes; visibility drives step indicator
-- `copyExtractBtn`
+- `extractResultSection`
+- `captureCurrentReplyBtn`
 - `saveExtractBtn`
-- `extractResultText`
+- `extractResultText` — editable textarea used as the final save source
 
 JS bindings:
 
-- `copyExtractBtn click` copies `lastExtractResult` to clipboard
-- `saveExtractBtn click` calls `saveExtractResult()` — downloads `.md`
+- `captureCurrentReplyBtn click` injects a small grabber into the active tab, captures the current Grok assistant reply, and fills `extractResultText`
+- `saveExtractBtn click` calls `saveExtractResult()` — saves the current textarea content as `.md`
 
 State variable:
 
-- `lastExtractResult` — in-memory markdown string, not persisted
+- `lastExtractResult` — in-memory copy of the current captured/edited result, used as a convenience cache rather than the only source of truth
 
 ### Extract Library
 
@@ -251,7 +256,7 @@ DOM IDs:
 JS bindings:
 
 - Toggle click opens/closes library list
-- Delegated library actions: `copyDocByName`, `dlDocByName`, `delDocByName`
+- Delegated library actions: `copyDocByName`, `delDocByName`
 
 Render function:
 
@@ -613,6 +618,7 @@ DOM classes:
 
 - `.font-btn[data-font]`
 - `.contrast-btn[data-contrast]`
+- `#themeSel`
 
 JS helpers:
 
@@ -621,6 +627,7 @@ JS helpers:
 
 Storage keys:
 
+- `uiTheme`
 - `popupFontSize`
 - `popupTextContrast`
 
@@ -636,15 +643,15 @@ Notes:
 
 Panel: `tab-flow`
 
-### Run-All Bar
+### Run-All Bar / Preset Controls
 
 DOM IDs:
-- `cfRunAllBtn` — executes all visible blocks in order; disabled during execution
-- `cfStopAllBtn` — stops current run-all execution
-- `cfGlobalStatus` — global run status text
 - `cfPresetSel` — preset dropdown
 - `cfDeletePresetBtn` — delete selected preset
 - `cfSavePresetBtn` — save current Custom Flow configuration as a preset; rendered below the card stack
+- `cfRunAllBtn` — executes all visible blocks in order; rendered inside Block 5
+- `cfStopAllBtn` — stops current run-all execution; rendered inside Block 5
+- `cfGlobalStatus` — global run status text; rendered inside Block 5 below the divider
 
 ### Block Cards (common pattern)
 
@@ -693,17 +700,20 @@ JS owner: `CustomFlowController`
 
 DOM IDs:
 - `cfAutoSave`
-- `cfRunBtn`
-- `cfStopBtn`
-- `cfSaveDraftBtn`
-- `cfCopyBtn`
-- `cfDlBtn`
+- `cfRunAllBtn`
+- `cfStopAllBtn`
+- `cfGlobalStatus`
 - `cfLog`
 - `cfResultSection`
 - `cfResultName`
 - `cfResultText`
 
 JS owner: `CustomFlowController`
+
+Notes:
+
+- The old single-run `cfRunBtn` / `cfStopBtn` controls are no longer part of the visible UI.
+- Card 05 is now the only visible global execution area for Custom Flow.
 
 ### CustomFlowController
 
@@ -753,7 +763,7 @@ Handled by `src/background.js`:
 
 | Message type | Sent from | Purpose | Main response |
 |---|---|---|---|
-| `START_EXTRACT` | `startExtract()` | Send combined prompt+schema text to Grok and collect responses | `PROGRESS`, `LOG_EXTRACT`, `EXTRACT_DONE` |
+| `START_EXTRACT` | `startExtract()` | Send combined prompt+schema text to Grok; current ETL path no longer auto-polls replies | `PROGRESS`, `LOG_EXTRACT`, `EXTRACT_DONE` |
 | `START_DISTILL` | `startDistill()` / `_runWithPipeline()` | Send raw text to selected AI and save result | `LOG_DISTILL`, `DISTILL_DONE` |
 | `START_VERIFY_WIKI` | legacy verify-wiki sender path | Send wiki verification prompt to the selected AI | `LOG_DISTILL`, `DISTILL_DONE` |
 | `RUN_AI_STRUCTURE` | legacy post-structure sender path | Send raw responses to a second AI-structuring pass | `LOG_DISTILL`, `DISTILL_DONE` |
@@ -784,6 +794,7 @@ Workflow:
 - `prompts`
 - `library`
 - `lastTab`
+- `uiTheme`
 
 AI selection:
 

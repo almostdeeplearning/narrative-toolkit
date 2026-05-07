@@ -62,30 +62,38 @@ const DistillRunBlock = {
       <div class="cf-card" data-cf-card="run">
         <div class="cf-card-head">
           <span class="cf-card-num">05</span>
-          <span class="cf-card-title">RUN — 執行</span>
-          <select class="cf-delay-sel" data-cf-delay-for="run">
-            <option value="0">無延遲</option>
-            <option value="2">2s</option>
-            <option value="5">5s</option>
-            <option value="10">10s</option>
-            <option value="20">20s</option>
-            <option value="custom">自訂</option>
-          </select>
-          <input class="cf-delay-custom" type="number" min="0" max="300" data-cf-custom-for="run" style="display:none" placeholder="秒">
+          <span class="cf-card-title">整理結果</span>
+          <div class="cf-delay-meta">
+            <span class="cf-delay-label">下一步前等</span>
+            <select class="cf-delay-sel" data-cf-delay-for="run">
+              <option value="0">0</option>
+              <option value="2">2</option>
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="custom">自訂</option>
+            </select>
+            <input class="cf-delay-custom" type="number" min="0" max="300" data-cf-custom-for="run" style="display:none" placeholder="秒">
+            <span class="cf-delay-unit">秒</span>
+          </div>
           <button class="btn btn-ghost btn-xs" data-cf-toggle="run">隱藏</button>
         </div>
         <div class="cf-card-body">
-          <div class="run-row" style="margin-top:0">
-            <button class="btn btn-primary" id="cfRunBtn">▶ 試跑一次</button>
-            <button class="btn btn-danger" id="cfStopBtn" style="display:none">停止</button>
+          <div class="cf-run-bar cf-run-bar-inline">
+            <div class="cf-run-main">
+              <div class="cf-run-actions cf-run-actions-full">
+                <button class="btn btn-primary btn-sm" id="cfRunAllBtn">▶▶ 一鍵跑完全部</button>
+                <button class="btn btn-danger btn-sm" id="cfStopAllBtn" style="display:none">停止</button>
+              </div>
+            </div>
           </div>
           <div style="height:1px;background:var(--line);margin:14px 0"></div>
+          <div class="cf-run-status" id="cfGlobalStatus"><span class="label">狀態：</span>就緒</div>
           <div class="cf-subsection" style="margin-top:0">
             <label class="cf-option-row">
               <input type="checkbox" id="cfAutoSave" checked style="accent-color:var(--text);width:13px;height:13px">
-              <span>執行完後自動存檔與下載</span>
+              <span>執行完後自動存檔與下載（關閉時僅送至 AI Chat，不自動回收結果）</span>
             </label>
-            <div class="cf-option-hint">關閉時僅送至 AI Chat，不自動回收結果</div>
           </div>
         </div>
       </div>

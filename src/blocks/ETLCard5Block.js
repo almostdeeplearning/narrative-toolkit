@@ -8,21 +8,21 @@ const ETLCard5Block = {
       <div class="cf-card etl-card" data-etl-card="save">
         <div class="cf-card-head">
           <span class="cf-card-num etl-card-num">05</span>
-          <span class="cf-card-title etl-card-title">SAVE — 儲存結果</span>
+          <span class="cf-card-title etl-card-title">結果確認與儲存</span>
           <button class="btn btn-ghost btn-xs" data-etl-toggle="save">隱藏</button>
         </div>
         <div class="cf-card-body etl-card-body">
           <span id="sn3" style="display:none"></span>
           <span id="st3" style="display:none"></span>
-          <div id="extractResultSection" style="display:none">
+          <div id="extractResultSection">
             <div class="section">
               <div class="section-head">
                 <div class="row" style="gap:4px;margin-left:auto">
-                  <button class="btn btn-xs" id="copyExtractBtn">複製</button>
+                  <button class="btn btn-xs" id="captureCurrentReplyBtn">截取當前回覆</button>
                   <button class="btn btn-xs" id="saveExtractBtn">⬇ 儲存 .md</button>
                 </div>
               </div>
-              <pre class="result-pre" id="extractResultText" style="max-height:280px"></pre>
+              <textarea class="result-pre result-editor" id="extractResultText" rows="10" placeholder="等待 Grok 回覆完成後，按「截取當前回覆」，可在這裡直接微調再儲存。"></textarea>
             </div>
           </div>
         </div>

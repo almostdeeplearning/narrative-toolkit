@@ -38,16 +38,20 @@ const DistillTaskBlock = {
       <div class="cf-card" data-cf-card="task">
         <div class="cf-card-head">
           <span class="cf-card-num">02</span>
-          <span class="cf-card-title">TASK — Prompt 任務</span>
-          <select class="cf-delay-sel" data-cf-delay-for="task">
-            <option value="0">無延遲</option>
-            <option value="2">2s</option>
-            <option value="5">5s</option>
-            <option value="10">10s</option>
-            <option value="20">20s</option>
-            <option value="custom">自訂</option>
-          </select>
-          <input class="cf-delay-custom" type="number" min="0" max="300" data-cf-custom-for="task" style="display:none" placeholder="秒">
+          <span class="cf-card-title">選擇分析</span>
+          <div class="cf-delay-meta">
+            <span class="cf-delay-label">下一步前等</span>
+            <select class="cf-delay-sel" data-cf-delay-for="task">
+              <option value="0">0</option>
+              <option value="2">2</option>
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="custom">自訂</option>
+            </select>
+            <input class="cf-delay-custom" type="number" min="0" max="300" data-cf-custom-for="task" style="display:none" placeholder="秒">
+            <span class="cf-delay-unit">秒</span>
+          </div>
           <button class="btn btn-ghost btn-xs" data-cf-toggle="task">隱藏</button>
         </div>
         <div class="cf-card-body">
@@ -56,7 +60,10 @@ const DistillTaskBlock = {
             <button class="btn btn-xs" id="cfClearPromptBtn">✕</button>
           </div>
           <select id="cfPromptSel" class="input" style="width:100%;height:30px;font-size:11px;padding:4px 8px;margin-bottom:8px"></select>
-          <pre class="selected-prompt-preview" id="cfSelectedPromptText" data-empty="1" style="max-height:80px;overflow:auto"></pre>
+          <pre class="selected-prompt-preview cf-preview-panel" id="cfSelectedPromptText" data-empty="1"></pre>
+          <div class="row" style="justify-content:flex-end;margin-top:6px">
+            <button class="btn btn-ghost btn-xs" id="cfPromptPreviewToggleBtn">展開</button>
+          </div>
         </div>
       </div>
     `.trim();

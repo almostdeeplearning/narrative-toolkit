@@ -319,3 +319,11 @@
 - **Reason:** Chrome 的 `<select>` 元素預設使用 OS 原生 UI 元件渲染，忽略 CSS `font-family` 與 `font-size` 設定，導致各 dropdown 字型與尺寸不一致，無法與介面其他元素對齊。在 Extension 環境中加入 `font-family: inherit` 的 reset 也無法解決此問題，因為根本原因在於渲染路徑而非繼承鏈。
 - **Alternatives considered:** 逐一對每個 `<select>` 加入 inline style 覆蓋（難以維護，無法保證一致性）；改用自訂 div + ul 實作 dropdown（工作量大，需處理無障礙與鍵盤操作）；接受原生樣式不做統一（字型不一致問題持續，違背工具型介面的設計標準）。
 - **Expected impact:** 所有 dropdown（ETL Prompt 選擇、Custom Flow Preset 選擇、Prompts tab 系列選擇）統一呈現為 `12px` Noto Sans TC、高度 `28px` 的緊湊樣式，與介面其他輸入元件視覺一致；自訂 SVG 箭頭維持視覺提示；新增 `<select>` 時只需套用 `.select-compact` 即可自動符合設計標準，不需逐案處理。
+
+## Decision 43
+- **Decision:** 將 X ETL 的結果回收流程改為半手動：Card 04 只送出 Prompt，不再自動等待或抓取 Grok 回覆；Card 05 改由使用者手動截取當前回覆、微調後再儲存。
+- **Date:** 2026-05-07
+- **created:** 05-07 17
+- **Reason:** 自動擷取經常抓到前一輪或其他卡片送出的舊回覆，問題核心不在 timeout 文案，而在「系統猜測目前應該抓哪一則回覆」這件事本身不可靠。
+- **Alternatives considered:** 保留自動擷取、只調整 timeout 文案；繼續優化 `pollGrok()` selector 與輪詢時機；完全移除 ETL 的結果處理區、要求使用者自行複製貼上。
+- **Expected impact:** ETL 的送出與結果回收責任切分更清楚；使用者可自行決定 Grok 回覆完成後的截取時機，降低抓錯回覆的風險；Card 05 成為結果確認、微調與儲存的明確出口。
