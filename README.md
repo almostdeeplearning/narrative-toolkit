@@ -37,7 +37,7 @@ BiteFlo helps transform complex insights into understandable bites and structure
 
 ## ⚙️ Main Features
 
-### 1. X ETL  
+### 1. Narrative Scan  
 **Quickly surface mainstream narratives on X**
 
 - Use Grok to extract real-time discussions  
@@ -47,7 +47,7 @@ BiteFlo helps transform complex insights into understandable bites and structure
 
 ---
 
-### 2. Custom Flow  
+### 2. AI Flows  
 **Deep analysis of individual posts**
 
 - Build prompt workflows using step-by-step cards  
@@ -57,19 +57,19 @@ BiteFlo helps transform complex insights into understandable bites and structure
 
 ---
 
-### 3. Prompt Library
+### 3. Prompt Manager
 
 - Manage frequently used prompts with tab-based organization  
-- Inline editing and expandable cards  
-- JSON import / export  
+- Inline editing, series management, and expandable cards  
+- Replace / merge import, JSON export, and Markdown export  
 
 ---
 
-### 4. Schema Library
+### 4. Format Manager
 
 - Manage output formats (Markdown, YAML, Table, Wiki, etc.)  
 - Inline editing  
-- JSON import / export  
+- Replace / merge import, JSON export, and Markdown export  
 
 ---
 

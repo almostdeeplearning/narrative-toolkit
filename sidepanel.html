@@ -1578,6 +1578,14 @@ body.font-large .cf-source-textarea { font-size: 16px; }
   padding: 6px 9px; height: auto;
 }
 
+.autosave-note {
+  padding: 8px 12px 0;
+  color: var(--text3);
+  font-size: 10px;
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+
 /* Empty dot for empty states */
 .empty-dot {
   width: 20px; height: 20px; border: 1px solid var(--line2);
@@ -2230,16 +2238,16 @@ html[data-lang="zh"] .topnav-tabs .nav-label {
   <!-- Scrollable tab list (middle) -->
   <div class="topnav-tabs">
     <button class="tab nav-item active" data-tab="extract">
-      <span class="nav-label" data-i18n="nav_extract">快速生成</span>
+      <span class="nav-label" data-i18n="nav_extract">脈絡掃描</span>
     </button>
     <button class="tab nav-item" data-tab="flow">
-      <span class="nav-label" data-i18n="nav_flow">自訂流程</span>
+      <span class="nav-label" data-i18n="nav_flow">AI Flows</span>
     </button>
     <button class="tab nav-item" data-tab="prompts">
-      <span class="nav-label" data-i18n="nav_prompts">Prompt 庫</span>
+      <span class="nav-label" data-i18n="nav_prompts">Prompt 管理</span>
     </button>
     <button class="tab nav-item" data-tab="schema">
-      <span class="nav-label" data-i18n="nav_schema">Schema 庫</span>
+      <span class="nav-label" data-i18n="nav_schema">格式管理</span>
     </button>
   </div>
 
@@ -2316,16 +2324,20 @@ html[data-lang="zh"] .topnav-tabs .nav-label {
 
       <!-- Edit series bar -->
       <div class="new-series-bar" id="editSeriesBar">
-        <input class="input" id="editSeriesName" placeholder="系列名稱">
-        <button class="btn btn-primary btn-xs" id="saveSeriesNameBtn">儲存</button>
-        <button class="btn btn-ghost btn-xs" id="cancelEditSeries">取消</button>
+        <input class="input" id="editSeriesName" placeholder="系列名稱" data-i18n-placeholder="series_name_placeholder">
+        <button class="btn btn-danger btn-xs" id="deleteSeriesBtn" data-i18n="delete_series">刪除系列</button>
+        <button class="btn btn-primary btn-xs" id="saveSeriesNameBtn" data-i18n="save">儲存</button>
+        <button class="btn btn-ghost btn-xs" id="cancelEditSeries" data-i18n="cancel">取消</button>
       </div>
 
       <!-- Prompt actions -->
       <div class="prompt-actions-bar">
-        <button class="btn btn-xs" id="importPromptsBtn">匯入</button>
-        <button class="btn btn-xs" id="exportPromptsBtn">匯出</button>
+        <button class="btn btn-xs" id="importPromptsBtn" data-i18n="import_replace">取代匯入</button>
+        <button class="btn btn-xs" id="mergePromptsBtn" data-i18n="import_merge">合併匯入</button>
+        <button class="btn btn-xs" id="exportPromptsBtn" data-i18n="export_json">匯出 JSON</button>
+        <button class="btn btn-xs" id="exportPromptsMdBtn" data-i18n="export_markdown">匯出 Markdown</button>
       </div>
+      <div class="autosave-note" data-i18n="autosave_hint">提示：Prompt 名稱與內容變更會自動儲存</div>
 
       <!-- Cards scroll area -->
       <div class="cards-scroll" id="seriesCards"></div>
@@ -2334,24 +2346,24 @@ html[data-lang="zh"] .topnav-tabs .nav-label {
       <div class="add-row" id="addPromptRow" style="display:none">
         <div class="add-row-trigger" id="addPromptTrigger">
           <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 1v8M1 5h8"/></svg>
-          新增 Prompt
+          <span data-i18n="add_prompt">新增 Prompt</span>
         </div>
         <div class="add-form" id="addPromptForm">
-          <input id="newSeriesPromptName" placeholder="名稱，例：深度訪談問題">
-          <textarea id="newSeriesPromptText" rows="3" placeholder="Prompt 內容（{{content}} 代入正文）"></textarea>
+          <input id="newSeriesPromptName" placeholder="名稱，例：深度訪談問題" data-i18n-placeholder="prompt_name_input_placeholder">
+          <textarea id="newSeriesPromptText" rows="3" placeholder="Prompt 內容（{{content}} 代入正文）" data-i18n-placeholder="prompt_text_input_placeholder"></textarea>
           <div class="add-form-row">
             <div class="spacer"></div>
-            <button class="btn btn-ghost btn-xs" id="cancelAddPrompt">取消</button>
-            <button class="btn btn-primary btn-xs" id="confirmAddPrompt">＋ 新增</button>
+            <button class="btn btn-ghost btn-xs" id="cancelAddPrompt" data-i18n="cancel">取消</button>
+            <button class="btn btn-primary btn-xs" id="confirmAddPrompt" data-i18n="add_action">＋ 新增</button>
           </div>
         </div>
       </div>
 
       <!-- New series bar -->
       <div class="new-series-bar" id="newSeriesBar">
-        <input class="input" id="newSeriesName" placeholder="系列名稱，例：角色訪談">
-        <button class="btn btn-primary btn-xs" id="addSeriesBtn">新增</button>
-        <button class="btn btn-ghost btn-xs" id="cancelNewSeries">取消</button>
+        <input class="input" id="newSeriesName" placeholder="系列名稱，例：角色訪談" data-i18n-placeholder="new_series_placeholder">
+        <button class="btn btn-primary btn-xs" id="addSeriesBtn" data-i18n="add_action">新增</button>
+        <button class="btn btn-ghost btn-xs" id="cancelNewSeries" data-i18n="cancel">取消</button>
       </div>
 
     </div>
@@ -2359,22 +2371,25 @@ html[data-lang="zh"] .topnav-tabs .nav-label {
     <!-- ════ TAB: SCHEMA ════ -->
     <div class="panel panel-fill" id="tab-schema">
       <div class="prompt-actions-bar">
-        <button class="btn btn-xs" id="importSchemasBtn">匯入</button>
-        <button class="btn btn-xs" id="exportSchemasBtn">匯出</button>
+        <button class="btn btn-xs" id="importSchemasBtn" data-i18n="import_replace">取代匯入</button>
+        <button class="btn btn-xs" id="mergeSchemasBtn" data-i18n="import_merge">合併匯入</button>
+        <button class="btn btn-xs" id="exportSchemasBtn" data-i18n="export_json">匯出 JSON</button>
+        <button class="btn btn-xs" id="exportSchemasMdBtn" data-i18n="export_markdown">匯出 Markdown</button>
       </div>
+      <div class="autosave-note" data-i18n="autosave_hint_schema">提示：Schema 名稱與內容變更會自動儲存</div>
       <div class="cards-scroll" id="schemaCards"></div>
       <div class="add-row" id="addSchemaRow">
         <div class="add-row-trigger" id="addSchemaTrigger">
           <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 1v8M1 5h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          新增 Schema
+          <span data-i18n="add_schema">新增 Schema</span>
         </div>
         <div class="add-form" id="addSchemaForm">
-          <input class="input" id="newSchemaName" placeholder="Schema 名稱（例：YAML）">
-          <textarea id="newSchemaInitText" placeholder="Schema prompt 文字（{{content}} 代入原始文字）" rows="4"></textarea>
+          <input class="input" id="newSchemaName" placeholder="Schema 名稱（例：YAML）" data-i18n-placeholder="schema_name_input_placeholder">
+          <textarea id="newSchemaInitText" placeholder="Schema prompt 文字（{{content}} 代入原始文字）" rows="4" data-i18n-placeholder="schema_text_input_placeholder"></textarea>
           <div class="add-form-row">
-            <button class="btn btn-ghost" id="cancelAddSchema">取消</button>
+            <button class="btn btn-ghost" id="cancelAddSchema" data-i18n="cancel">取消</button>
             <div class="spacer"></div>
-            <button class="btn btn-primary btn-xs" id="confirmAddSchema">新增</button>
+            <button class="btn btn-primary btn-xs" id="confirmAddSchema" data-i18n="add_action">新增</button>
           </div>
         </div>
       </div>

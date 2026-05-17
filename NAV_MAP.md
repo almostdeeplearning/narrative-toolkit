@@ -17,7 +17,7 @@ This document maps the current Chrome Extension Side Panel UI, DOM IDs, JavaScri
   - Body fills Side Panel height (`100%`); width is user-controlled by dragging the panel edge.
   - Load order: Distill block files → ETL Card block files → `src/sidepanel.js` → `src/popup-ui-patch.js`.
   - Must not contain inline `<script>...</script>` or inline event handlers.
-  - 目前不再保留 `tab-distill` 的 dormant DOM shell；分享版可見面只包含 Extract / Flow / Prompts / Schema / Settings。
+  - 目前不再保留 `tab-distill` 的 dormant DOM shell；分享版可見面只包含 Narrative Scan / AI Flows / Prompt Manager / Format Manager / Settings。
 
 - `src/blocks/` (plain-script files, loaded before sidepanel.js)
   - Distill blocks:
@@ -58,10 +58,10 @@ The current UI uses a horizontally scrollable Topnav. The buttons still use `.na
 
 | Nav | Button selector | Panel ID | Purpose |
 |---|---|---|---|
-| 快速生成 | `.nav-item[data-tab="extract"]` | `tab-extract` | X/Grok ETL workflow |
-| 自訂流程 | `.nav-item[data-tab="flow"]` | `tab-flow` | Custom Flow — composable 5-block automation pipeline |
-| Prompt 庫 | `.nav-item[data-tab="prompts"]` | `tab-prompts` | Prompt series manager |
-| Schema 庫 | `.nav-item[data-tab="schema"]` | `tab-schema` | Format template library |
+| 脈絡掃描 | `.nav-item[data-tab="extract"]` | `tab-extract` | X/Grok ETL workflow |
+| AI Flows | `.nav-item[data-tab="flow"]` | `tab-flow` | Custom Flow — composable 5-block automation pipeline |
+| Prompt 管理 | `.nav-item[data-tab="prompts"]` | `tab-prompts` | Prompt series manager |
+| 格式管理 | `.nav-item[data-tab="schema"]` | `tab-schema` | Format template manager |
 | Settings | `.nav-item[data-tab="settings"]` | `tab-settings` | Automation, local storage, and layout |
 
 Navigation is coordinated by:
@@ -363,8 +363,10 @@ Panel: `tab-prompts` (`panel-fill`, no internal scroll — layout managed by fle
 
 DOM IDs:
 
-- `importPromptsBtn` — opens `promptImportInput` for JSON import
+- `importPromptsBtn` — replace-imports Prompt JSON into `promptSeries`
+- `mergePromptsBtn` — merge-imports Prompt JSON into the current manager
 - `exportPromptsBtn` — exports `promptSeries` as JSON
+- `exportPromptsMdBtn` — exports Prompt series as Markdown and opens Save As
 - `promptImportInput` — hidden file input for Prompt import
 
 ### Series Tab Bar
@@ -461,15 +463,22 @@ DOM IDs:
 
 - `editSeriesBar` — inline rename row shown from `editSeriesBtn`
 - `editSeriesName`
+- `deleteSeriesBtn`
 - `saveSeriesNameBtn`
 - `cancelEditSeries`
 
 JS bindings:
 
+- `deleteSeriesBtn click` calls `delSeries(currentSeriesId)` with confirm dialog
 - `saveSeriesNameBtn click` calls `saveCurrentSeriesName()`
 - `editSeriesName keydown Enter` calls `saveCurrentSeriesName()`
 - `editSeriesName keydown Escape` calls `closeEditSeriesForm()`
 - `cancelEditSeries click` calls `closeEditSeriesForm()`
+
+UX note:
+
+- Empty series names are not persisted. The UI now shows an explicit hint directing the user to `刪除系列 / Delete Series` instead of silently failing.
+- Prompt and Schema editors remain autosave-first; both tabs now show a visible autosave hint and use `_showSaveToast()` for `已自動儲存 / Auto-saved`.
 
 Storage keys:
 
@@ -480,6 +489,15 @@ Storage keys:
 ## Schema Tab
 
 Panel: `tab-schema` (`panel-fill`, same layout as Prompts tab)
+
+### Schema Actions Bar
+
+DOM IDs:
+
+- `importSchemasBtn` — replace-imports Schema JSON into `schemaTemplates`
+- `mergeSchemasBtn` — merge-imports Schema JSON into the current manager
+- `exportSchemasBtn` — exports `schemaTemplates` as JSON
+- `exportSchemasMdBtn` — exports Schema templates as Markdown and opens Save As
 
 ### Schema Cards
 

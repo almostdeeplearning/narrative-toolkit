@@ -23,10 +23,10 @@ let currentLanguage = 'zh';
 
 const I18N = {
   zh: {
-    nav_extract: '快速<br class="nav-zh-break">生成',
-    nav_flow: '自訂<br class="nav-zh-break">流程',
-    nav_prompts: 'Prompt<br class="nav-zh-break">庫',
-    nav_schema: 'Schema<br class="nav-zh-break">庫',
+    nav_extract: '脈絡<br class="nav-zh-break">掃描',
+    nav_flow: 'AI<br class="nav-zh-break">Flows',
+    nav_prompts: 'Prompt<br class="nav-zh-break">管理',
+    nav_schema: '格式<br class="nav-zh-break">管理',
     nav_settings: 'Settings',
     hidden: '隱藏',
     shown: '顯示',
@@ -34,6 +34,38 @@ const I18N = {
     collapse: '收合',
     copy: '複製',
     download: '⬇ 下載',
+    import_replace: '取代匯入',
+    import_merge: '合併匯入',
+    export_json: '匯出 JSON',
+    export_markdown: '匯出 Markdown',
+    save: '儲存',
+    cancel: '取消',
+    add_action: '新增',
+    edit: '編輯',
+    delete_series: '刪除系列',
+    edit_series: '編輯系列',
+    add_series: '新增系列',
+    series_name_placeholder: '系列名稱',
+    new_series_placeholder: '系列名稱，例：角色訪談',
+    autosave_hint: '提示：Prompt 名稱與內容變更會自動儲存',
+    autosave_hint_schema: '提示：Schema 名稱與內容變更會自動儲存',
+    series_name_empty_hint: '系列名稱不能為空；若要移除此系列，請按「刪除系列」',
+    auto_saved: '已自動儲存',
+    series_name_updated: '已更新系列名稱',
+    delete_series_confirm: '刪除此系列？',
+    delete_series_done: '已刪除系列「{name}」',
+    editable_name: '名稱可編輯',
+    prompt_name_placeholder: 'Prompt 名稱',
+    prompt_name_input_placeholder: '名稱，例：深度訪談問題',
+    prompt_text_input_placeholder: 'Prompt 內容（{{content}} 代入正文）',
+    copy_prompt: '⧉ 複製 Prompt',
+    add_prompt: '新增 Prompt',
+    schema_name_placeholder: 'Schema 名稱',
+    schema_name_input_placeholder: 'Schema 名稱（例：YAML）',
+    schema_text_placeholder: 'Schema prompt（{{content}} 代入原始文字）',
+    schema_text_input_placeholder: 'Schema prompt 文字（{{content}} 代入原始文字）',
+    copy_schema: '⧉ 複製 Schema',
+    add_schema: '新增 Schema',
     delete: '刪除',
     stop: '停止',
     save_flow: '儲存為預設流程',
@@ -94,14 +126,14 @@ const I18N = {
     no_schema_empty: '尚無 Schema — 點下方「新增 Schema」建立第一個格式模板',
     pick_schema_optional: '— 選擇 Schema 格式（選填）—',
     no_extract_records: '尚無萃取記錄',
-    empty_pick_or_add_series: '← 選擇或新增系列',
+    empty_pick_or_add_series: '尚無 Prompt 系列，請按上方「新增」建立第一個系列',
     empty_add_prompt: '尚無 Prompt<br>點下方「新增 Prompt」開始',
   },
   en: {
-    nav_extract: 'Quick Extract',
-    nav_flow: 'Workflow',
-    nav_prompts: 'Prompt Library',
-    nav_schema: 'Format Library',
+    nav_extract: 'Narrative Scan',
+    nav_flow: 'AI Flows',
+    nav_prompts: 'Prompt Manager',
+    nav_schema: 'Format Manager',
     nav_settings: 'Settings',
     hidden: 'Hide',
     shown: 'Show',
@@ -109,6 +141,38 @@ const I18N = {
     collapse: 'Collapse',
     copy: 'Copy',
     download: '⬇ Download',
+    import_replace: 'Replace Import',
+    import_merge: 'Merge Import',
+    export_json: 'Export JSON',
+    export_markdown: 'Export Markdown',
+    save: 'Save',
+    cancel: 'Cancel',
+    add_action: 'Add',
+    edit: 'Edit',
+    delete_series: 'Delete Series',
+    edit_series: 'Edit Series',
+    add_series: 'Add Series',
+    series_name_placeholder: 'Series name',
+    new_series_placeholder: 'Series name, e.g. expert interviews',
+    autosave_hint: 'Tip: Prompt name and content changes are saved automatically.',
+    autosave_hint_schema: 'Tip: Schema name and content changes are saved automatically.',
+    series_name_empty_hint: 'Series name cannot be empty. Use "Delete Series" if you want to remove it.',
+    auto_saved: 'Auto-saved',
+    series_name_updated: 'Series name updated',
+    delete_series_confirm: 'Delete this series?',
+    delete_series_done: 'Deleted series "{name}"',
+    editable_name: 'Name can be edited',
+    prompt_name_placeholder: 'Prompt name',
+    prompt_name_input_placeholder: 'Name, e.g. deep interview questions',
+    prompt_text_input_placeholder: 'Prompt content (uses {{content}} for the source text)',
+    copy_prompt: '⧉ Copy Prompt',
+    add_prompt: 'Add Prompt',
+    schema_name_placeholder: 'Schema name',
+    schema_name_input_placeholder: 'Schema name, e.g. YAML',
+    schema_text_placeholder: 'Schema prompt (uses {{content}} for the source text)',
+    schema_text_input_placeholder: 'Schema prompt text (uses {{content}} for the source text)',
+    copy_schema: '⧉ Copy Schema',
+    add_schema: 'Add Schema',
     delete: 'Delete',
     stop: 'Stop',
     save_flow: 'Save Workflow',
@@ -169,7 +233,7 @@ const I18N = {
     no_schema_empty: 'No formats yet — click "Add Schema" below to create your first format.',
     pick_schema_optional: '— Select format (optional) —',
     no_extract_records: 'No runs yet',
-    empty_pick_or_add_series: '← Select or add a series',
+    empty_pick_or_add_series: 'No prompt series yet. Click "Add" above to create your first one.',
     empty_add_prompt: 'No prompts yet<br>Click "Add Prompt" below to get started',
   },
 };
@@ -1568,6 +1632,20 @@ async function migrateLegacyDistillAutoSave() {
   }
 }
 
+function normalizeLegacyPromptSeries(sourcePrompts) {
+  if (!Array.isArray(sourcePrompts)) return [];
+  const items = sourcePrompts
+    .map((p, idx) => ({
+      id: crypto.randomUUID(),
+      name: String(p?.name || `Prompt ${idx + 1}`).trim() || `Prompt ${idx + 1}`,
+      text: String(p?.text || '').trim(),
+    }))
+    .filter(p => p.text);
+
+  if (!items.length) return [];
+  return [{ id: crypto.randomUUID(), name: 'Migrated Prompts', prompts: items }];
+}
+
 async function loadSettings() {
   const d = await chrome.storage.local.get([
     'prompts', 'extractAI', 'extractGrokMode', 'distillAI', 'delaySeconds',
@@ -1585,7 +1663,18 @@ async function loadSettings() {
   extractAI       = normalizedExtract.ai;
   extractGrokMode = normalizedExtract.grokMode;
   series          = d.promptSeries || [];
-  currentSeriesId = d.currentSeriesId || null;
+  let migratedPromptSeries = false;
+  if (!series.length) {
+    const migrated = normalizeLegacyPromptSeries(d.prompts || []);
+    if (migrated.length) {
+      series = migrated;
+      migratedPromptSeries = true;
+    }
+  }
+  currentSeriesId = d.currentSeriesId || series[0]?.id || null;
+  if (currentSeriesId && !series.some(x => x.id === currentSeriesId)) {
+    currentSeriesId = series[0]?.id || null;
+  }
   extractSeriesId = d.extractSeriesId || null;
   extractSchemaId = d.extractSchemaId || null;
 
@@ -1604,6 +1693,12 @@ async function loadSettings() {
     if (d.noteTpl) defaults.unshift({ id: crypto.randomUUID(), name: '筆記.md', text: d.noteTpl });
     schemaTemplates = defaults;
     await chrome.storage.local.set({ schemaTemplates });
+  }
+
+  if (migratedPromptSeries) {
+    await chrome.storage.local.set({ promptSeries: series, currentSeriesId });
+  } else if ((d.currentSeriesId || null) !== currentSeriesId) {
+    await chrome.storage.local.set({ currentSeriesId });
   }
 
   applyTheme(d.uiTheme || 'nt-dark');
@@ -1802,14 +1897,24 @@ function bindAll() {
 
   // Prompt series
   $('exportPromptsBtn').addEventListener('click', exportPromptSeries);
-  $('importPromptsBtn').addEventListener('click', () => $('promptImportInput').click());
+  $('exportPromptsMdBtn').addEventListener('click', exportPromptSeriesMarkdown);
+  $('mergePromptsBtn').addEventListener('click', () => {
+    $('promptImportInput').dataset.importMode = 'merge';
+    $('promptImportInput').click();
+  });
+  $('importPromptsBtn').addEventListener('click', () => {
+    $('promptImportInput').dataset.importMode = 'replace';
+    $('promptImportInput').click();
+  });
   $('promptImportInput').addEventListener('change', async e => {
     const input = e.target;
+    const mode = input.dataset.importMode === 'merge' ? 'merge' : 'replace';
     try {
-      await importPromptSeries(input.files?.[0]);
+      await importPromptSeries(input.files?.[0], mode);
     } catch (err) {
       alert(`Prompt 匯入失敗：${err.message}`);
     } finally {
+      delete input.dataset.importMode;
       input.value = '';
     }
   });
@@ -1823,6 +1928,10 @@ function bindAll() {
     $('newSeriesName').value = '';
   });
   $('saveSeriesNameBtn').addEventListener('click', saveCurrentSeriesName);
+  $('deleteSeriesBtn').addEventListener('click', () => {
+    if (!currentSeriesId) return;
+    window.delSeries(currentSeriesId);
+  });
   $('editSeriesName').addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); saveCurrentSeriesName(); }
     if (e.key === 'Escape') closeEditSeriesForm();
@@ -1846,14 +1955,24 @@ function bindAll() {
 
   // Schema tab
   $('exportSchemasBtn').addEventListener('click', exportSchemaTemplates);
-  $('importSchemasBtn').addEventListener('click', () => $('schemaImportInput').click());
+  $('exportSchemasMdBtn').addEventListener('click', exportSchemaTemplatesMarkdown);
+  $('mergeSchemasBtn').addEventListener('click', () => {
+    $('schemaImportInput').dataset.importMode = 'merge';
+    $('schemaImportInput').click();
+  });
+  $('importSchemasBtn').addEventListener('click', () => {
+    $('schemaImportInput').dataset.importMode = 'replace';
+    $('schemaImportInput').click();
+  });
   $('schemaImportInput').addEventListener('change', async e => {
     const input = e.target;
+    const mode = input.dataset.importMode === 'merge' ? 'merge' : 'replace';
     try {
-      await importSchemaTemplates(input.files?.[0]);
+      await importSchemaTemplates(input.files?.[0], mode);
     } catch (err) {
       alert(`Schema 匯入失敗：${err.message}`);
     } finally {
+      delete input.dataset.importMode;
       input.value = '';
     }
   });
@@ -1894,7 +2013,7 @@ function bindAll() {
         DistillFormatBlock._renderPicker();
         CustomFlowController._renderFormatPicker();
         const foot = ta.closest('.pcard')?.querySelector('.pcard-chars');
-        if (foot) foot.textContent = ta.value.length + ' 字';
+        if (foot) foot.textContent = getPromptCountLabel(ta.value.length);
         ta.style.height = 'auto';
         ta.style.height = ta.scrollHeight + 'px';
       }
@@ -2457,7 +2576,7 @@ function renderSchemas() {
         <div class="pcard-info">
           <div class="pcard-name-row">
             <div class="pcard-name">${esc(s.name)}</div>
-            <span class="pcard-edit-badge" title="名稱可編輯">✎</span>
+            <span class="pcard-edit-badge" title="${esc(t('editable_name'))}">✎</span>
           </div>
           <div class="pcard-preview">${esc(excerpt(s.text))}</div>
         </div>
@@ -2468,12 +2587,12 @@ function renderSchemas() {
       </div>
       <div class="pcard-body">
         <hr class="pcard-divider">
-        <input class="schema-name-input" data-saction="renameSchema" data-idx="${i}" value="${esc(s.name)}" placeholder="Schema 名稱">
-        <textarea class="pcard-editor" data-saction="editSchema" data-idx="${i}" placeholder="Schema prompt（{{content}} 代入原始文字）">${esc(s.text)}</textarea>
+        <input class="schema-name-input" data-saction="renameSchema" data-idx="${i}" value="${esc(s.name)}" placeholder="${esc(t('schema_name_placeholder'))}">
+        <textarea class="pcard-editor" data-saction="editSchema" data-idx="${i}" placeholder="${esc(t('schema_text_placeholder'))}">${esc(s.text)}</textarea>
         <div class="pcard-foot">
-          <span class="pcard-chars">${s.text.length} 字</span>
+          <span class="pcard-chars">${getPromptCountLabel(s.text.length)}</span>
           <div class="spacer"></div>
-          <button class="btn btn-primary btn-xs" data-saction="copySchema" data-idx="${i}">⧉ 複製 Schema</button>
+          <button class="btn btn-primary btn-xs" data-saction="copySchema" data-idx="${i}">${esc(t('copy_schema'))}</button>
         </div>
       </div>
     </div>`;
@@ -2574,8 +2693,15 @@ function makeExportStamp() {
   return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z').replace(/[:T]/g, '-');
 }
 
-function queueDownloadText(name, content, mime = 'text/plain;charset=utf-8') {
-  chrome.runtime.sendMessage({ type: 'DOWNLOAD_TEXT', name, content, mime });
+function queueDownloadText(name, content, mime = 'text/plain;charset=utf-8', opts = {}) {
+  chrome.runtime.sendMessage({
+    type: 'DOWNLOAD_TEXT',
+    name,
+    content,
+    mime,
+    folder: opts.folder || '',
+    saveAs: !!opts.saveAs,
+  });
 }
 
 function ensureUniqueId(rawId, seen) {
@@ -2607,6 +2733,109 @@ function normalizePromptImport(parsed) {
   });
 }
 
+function normalizeSeriesNameKey(name) {
+  return String(name || '').trim().toLocaleLowerCase();
+}
+
+function normalizePromptNameKey(name) {
+  return String(name || '').trim().toLocaleLowerCase();
+}
+
+function makePromptIdentityKey(prompt) {
+  return `${normalizePromptNameKey(prompt?.name)}\u0000${String(prompt?.text || '').trim()}`;
+}
+
+function makeUniquePromptName(baseName, existingNameKeys) {
+  const rawBase = String(baseName || 'Prompt').trim() || 'Prompt';
+  let nextName = rawBase;
+  let index = 2;
+  while (existingNameKeys.has(normalizePromptNameKey(nextName))) {
+    nextName = `${rawBase} (${index})`;
+    index++;
+  }
+  return nextName;
+}
+
+function mergePromptSeries(existingSeries, importedSeries) {
+  const usedSeriesIds = new Set();
+  const merged = existingSeries.map(item => {
+    const seriesId = ensureUniqueId(item?.id, usedSeriesIds);
+    const usedPromptIds = new Set();
+    return {
+      id: seriesId,
+      name: String(item?.name || '').trim() || '未命名系列',
+      prompts: (Array.isArray(item?.prompts) ? item.prompts : []).map((prompt, idx) => ({
+        id: ensureUniqueId(prompt?.id, usedPromptIds),
+        name: String(prompt?.name || `Prompt ${idx + 1}`).trim() || `Prompt ${idx + 1}`,
+        text: String(prompt?.text || ''),
+      })),
+    };
+  });
+
+  let addedSeriesCount = 0;
+  let addedPromptCount = 0;
+  let skippedPromptCount = 0;
+  let renamedPromptCount = 0;
+
+  for (const imported of importedSeries) {
+    const target = merged.find(item => normalizeSeriesNameKey(item.name) === normalizeSeriesNameKey(imported.name));
+    if (!target) {
+      const usedPromptIds = new Set();
+      const promptsToAdd = imported.prompts.map((prompt, idx) => ({
+        id: ensureUniqueId(prompt?.id, usedPromptIds),
+        name: String(prompt?.name || `Prompt ${idx + 1}`).trim() || `Prompt ${idx + 1}`,
+        text: String(prompt?.text || ''),
+      }));
+      merged.push({
+        id: ensureUniqueId(imported?.id, usedSeriesIds),
+        name: String(imported?.name || '').trim() || `未命名系列 ${merged.length + 1}`,
+        prompts: promptsToAdd,
+      });
+      addedSeriesCount++;
+      addedPromptCount += promptsToAdd.length;
+      continue;
+    }
+
+    const usedPromptIds = new Set(target.prompts.map(prompt => prompt.id));
+    const existingPromptKeys = new Set(target.prompts.map(makePromptIdentityKey));
+    const existingNameKeys = new Set(target.prompts.map(prompt => normalizePromptNameKey(prompt.name)));
+
+    for (const importedPrompt of imported.prompts) {
+      const importedKey = makePromptIdentityKey(importedPrompt);
+      if (existingPromptKeys.has(importedKey)) {
+        skippedPromptCount++;
+        continue;
+      }
+
+      let nextName = String(importedPrompt?.name || 'Prompt').trim() || 'Prompt';
+      if (existingNameKeys.has(normalizePromptNameKey(nextName))) {
+        nextName = makeUniquePromptName(nextName, existingNameKeys);
+        renamedPromptCount++;
+      }
+
+      const nextPrompt = {
+        id: ensureUniqueId(importedPrompt?.id, usedPromptIds),
+        name: nextName,
+        text: String(importedPrompt?.text || ''),
+      };
+      target.prompts.push(nextPrompt);
+      existingPromptKeys.add(makePromptIdentityKey(nextPrompt));
+      existingNameKeys.add(normalizePromptNameKey(nextPrompt.name));
+      addedPromptCount++;
+    }
+  }
+
+  return {
+    series: merged,
+    stats: {
+      addedSeriesCount,
+      addedPromptCount,
+      skippedPromptCount,
+      renamedPromptCount,
+    },
+  };
+}
+
 function normalizeSchemaImport(parsed) {
   const rawSchemas = Array.isArray(parsed) ? parsed : parsed?.schemaTemplates;
   if (!Array.isArray(rawSchemas)) throw new Error('Schema 匯入檔格式不正確');
@@ -2617,6 +2846,59 @@ function normalizeSchemaImport(parsed) {
     name: String(item?.name || `Schema ${idx + 1}`).trim() || `Schema ${idx + 1}`,
     text: String(item?.text || ''),
   }));
+}
+
+function makeSchemaIdentityKey(schema) {
+  return `${normalizePromptNameKey(schema?.name)}\u0000${String(schema?.text || '').trim()}`;
+}
+
+function mergeSchemaTemplates(existingSchemas, importedSchemas) {
+  const usedSchemaIds = new Set();
+  const merged = existingSchemas.map((item, idx) => ({
+    id: ensureUniqueId(item?.id, usedSchemaIds),
+    name: String(item?.name || `Schema ${idx + 1}`).trim() || `Schema ${idx + 1}`,
+    text: String(item?.text || ''),
+  }));
+
+  let addedSchemaCount = 0;
+  let skippedSchemaCount = 0;
+  let renamedSchemaCount = 0;
+
+  const existingSchemaKeys = new Set(merged.map(makeSchemaIdentityKey));
+  const existingNameKeys = new Set(merged.map(item => normalizePromptNameKey(item.name)));
+
+  for (const imported of importedSchemas) {
+    const importedKey = makeSchemaIdentityKey(imported);
+    if (existingSchemaKeys.has(importedKey)) {
+      skippedSchemaCount++;
+      continue;
+    }
+
+    let nextName = String(imported?.name || 'Schema').trim() || 'Schema';
+    if (existingNameKeys.has(normalizePromptNameKey(nextName))) {
+      nextName = makeUniquePromptName(nextName, existingNameKeys);
+      renamedSchemaCount++;
+    }
+
+    const nextSchema = {
+      id: ensureUniqueId(imported?.id, usedSchemaIds),
+      name: nextName,
+      text: String(imported?.text || ''),
+    };
+    merged.push(nextSchema);
+    existingSchemaKeys.add(makeSchemaIdentityKey(nextSchema));
+    existingNameKeys.add(normalizePromptNameKey(nextSchema.name));
+    addedSchemaCount++;
+  }
+
+  return {
+    schemaTemplates: merged,
+    stats: {
+      addedSchemaCount,
+      skippedSchemaCount,
+      renamedSchemaCount,
+    },
+  };
 }
 
 function reconcilePromptSelection(seriesId, promptIdx, sourceSeries) {
@@ -2648,6 +2930,73 @@ function refreshSchemaConsumers() {
   CustomFlowController._renderFormatPicker();
 }
 
+function escapeMarkdownCodeFence(text) {
+  return String(text || '').replace(/```/g, '``\\`');
+}
+
+function formatPromptSeriesMarkdown(sourceSeries) {
+  const lines = [
+    '# Prompt Manager Export',
+    '',
+    `Exported at: ${new Date().toISOString()}`,
+    '',
+  ];
+
+  if (!sourceSeries.length) {
+    lines.push('_No prompt series found._');
+    lines.push('');
+    return lines.join('\n');
+  }
+
+  sourceSeries.forEach((item, seriesIdx) => {
+    lines.push(`## ${seriesIdx + 1}. ${item.name}`);
+    lines.push('');
+
+    if (!item.prompts.length) {
+      lines.push('_No prompts in this series._');
+      lines.push('');
+      return;
+    }
+
+    item.prompts.forEach((prompt, promptIdx) => {
+      lines.push(`### ${seriesIdx + 1}.${promptIdx + 1} ${prompt.name}`);
+      lines.push('');
+      lines.push('```text');
+      lines.push(escapeMarkdownCodeFence(prompt.text));
+      lines.push('```');
+      lines.push('');
+    });
+  });
+
+  return lines.join('\n');
+}
+
+function formatSchemaTemplatesMarkdown(sourceSchemas) {
+  const lines = [
+    '# Format Manager Export',
+    '',
+    `Exported at: ${new Date().toISOString()}`,
+    '',
+  ];
+
+  if (!sourceSchemas.length) {
+    lines.push('_No schema templates found._');
+    lines.push('');
+    return lines.join('\n');
+  }
+
+  sourceSchemas.forEach((item, idx) => {
+    lines.push(`## ${idx + 1}. ${item.name}`);
+    lines.push('');
+    lines.push('```text');
+    lines.push(escapeMarkdownCodeFence(item.text));
+    lines.push('```');
+    lines.push('');
+  });
+
+  return lines.join('\n');
+}
+
 function exportPromptSeries() {
   const payload = {
     type: 'narrative-toolkit.prompts',
@@ -2661,6 +3010,16 @@ function exportPromptSeries() {
     'application/json;charset=utf-8'
   );
   showToast(`已匯出 ${series.length} 個系列`);
+}
+
+function exportPromptSeriesMarkdown() {
+  queueDownloadText(
+    `narrative-toolkit-prompts-${makeExportStamp()}.md`,
+    formatPromptSeriesMarkdown(series),
+    'text/markdown;charset=utf-8',
+    { saveAs: true }
+  );
+  showToast(`準備匯出 Markdown：${series.length} 個系列`);
 }
 
 function exportSchemaTemplates() {
@@ -2678,15 +3037,33 @@ function exportSchemaTemplates() {
   showToast(`已匯出 ${schemaTemplates.length} 個 Schema`);
 }
 
-async function importPromptSeries(file) {
+function exportSchemaTemplatesMarkdown() {
+  queueDownloadText(
+    `narrative-toolkit-schemas-${makeExportStamp()}.md`,
+    formatSchemaTemplatesMarkdown(schemaTemplates),
+    'text/markdown;charset=utf-8',
+    { saveAs: true }
+  );
+  showToast(`準備匯出 Markdown：${schemaTemplates.length} 個 Schema`);
+}
+
+async function importPromptSeries(file, mode = 'replace') {
   if (!file) return;
-  if (!confirm('匯入 Prompts 會覆蓋目前 Prompt 庫，是否繼續？')) return;
+  if (mode === 'merge') {
+    if (!confirm('合併匯入會把新 Prompt 併入目前 Prompt 庫，是否繼續？')) return;
+  } else if (!confirm('取代匯入會覆蓋目前 Prompt 庫，是否繼續？')) return;
 
   const text = await file.text();
   const parsed = JSON.parse(text);
   const importedSeries = normalizePromptImport(parsed);
-
-  series = importedSeries;
+  let mergeStats = null;
+  if (mode === 'merge') {
+    const merged = mergePromptSeries(series, importedSeries);
+    series = merged.series;
+    mergeStats = merged.stats;
+  } else {
+    series = importedSeries;
+  }
   currentSeriesId = series.some(x => x.id === currentSeriesId) ? currentSeriesId : (series[0]?.id || null);
   extractSeriesId = series.some(x => x.id === extractSeriesId) ? extractSeriesId : null;
 
@@ -2709,16 +3086,32 @@ async function importPromptSeries(file) {
     cfPromptIdx: CustomFlowController.promptIdx,
   });
   refreshPromptConsumers();
-  showToast(`已匯入 ${series.length} 個系列`);
+  if (mode === 'merge' && mergeStats) {
+    const renamePart = mergeStats.renamedPromptCount ? `，改名保留 ${mergeStats.renamedPromptCount} 個` : '';
+    const skipPart = mergeStats.skippedPromptCount ? `，略過重複 ${mergeStats.skippedPromptCount} 個` : '';
+    showToast(`合併匯入完成：新增 ${mergeStats.addedSeriesCount} 個系列、${mergeStats.addedPromptCount} 個 Prompt${renamePart}${skipPart}`);
+  } else {
+    showToast(`已匯入 ${series.length} 個系列`);
+  }
 }
 
-async function importSchemaTemplates(file) {
+async function importSchemaTemplates(file, mode = 'replace') {
   if (!file) return;
-  if (!confirm('匯入 Schema 會覆蓋目前 Schema 庫，是否繼續？')) return;
+  if (mode === 'merge') {
+    if (!confirm('合併匯入會把新 Schema 併入目前 Schema 庫，是否繼續？')) return;
+  } else if (!confirm('取代匯入會覆蓋目前 Schema 庫，是否繼續？')) return;
 
   const text = await file.text();
   const parsed = JSON.parse(text);
-  schemaTemplates = normalizeSchemaImport(parsed);
+  const importedSchemas = normalizeSchemaImport(parsed);
+  let mergeStats = null;
+  if (mode === 'merge') {
+    const merged = mergeSchemaTemplates(schemaTemplates, importedSchemas);
+    schemaTemplates = merged.schemaTemplates;
+    mergeStats = merged.stats;
+  } else {
+    schemaTemplates = importedSchemas;
+  }
 
   extractSchemaId = reconcileSchemaSelection(extractSchemaId, schemaTemplates);
   DistillFormatBlock.schemaId = reconcileSchemaSelection(DistillFormatBlock.schemaId, schemaTemplates);
@@ -2732,7 +3125,13 @@ async function importSchemaTemplates(file) {
     cfSchemaId: CustomFlowController.schemaId,
   });
   refreshSchemaConsumers();
-  showToast(`已匯入 ${schemaTemplates.length} 個 Schema`);
+  if (mode === 'merge' && mergeStats) {
+    const renamePart = mergeStats.renamedSchemaCount ? `，改名保留 ${mergeStats.renamedSchemaCount} 個` : '';
+    const skipPart = mergeStats.skippedSchemaCount ? `，略過重複 ${mergeStats.skippedSchemaCount} 個` : '';
+    showToast(`合併匯入完成：新增 ${mergeStats.addedSchemaCount} 個 Schema${renamePart}${skipPart}`);
+  } else {
+    showToast(`已匯入 ${schemaTemplates.length} 個 Schema`);
+  }
 }
 
 // ── Prompt Series — tab-bar + card pattern ────────────────────────────────────
@@ -2754,7 +3153,7 @@ function showToast(msg) {
 let _saveToastTimer = null;
 function _showSaveToast() {
   clearTimeout(_saveToastTimer);
-  _saveToastTimer = setTimeout(() => showToast(currentLanguage === 'en' ? 'Saved' : '已儲存'), 800);
+  _saveToastTimer = setTimeout(() => showToast(t('auto_saved')), 800);
 }
 
 function renderTabbar() {
@@ -2775,8 +3174,8 @@ function renderTabbar() {
       </select>
     </div>
     <div class="series-actions">
-      <button class="series-tool-btn${hasSeries && currentSeriesId ? ' is-ready' : ''}" id="editSeriesBtn" title="編輯系列"${hasSeries && currentSeriesId ? '' : ' disabled'}>編輯</button>
-      <button class="series-tool-btn" id="tabAddSeriesBtn" title="新增系列">新增</button>
+      <button class="series-tool-btn${hasSeries && currentSeriesId ? ' is-ready' : ''}" id="editSeriesBtn" title="${esc(t('edit_series'))}"${hasSeries && currentSeriesId ? '' : ' disabled'}>${esc(t('edit'))}</button>
+      <button class="series-tool-btn" id="tabAddSeriesBtn" title="${esc(t('add_series'))}">${esc(t('add_action'))}</button>
     </div>
   `;
 
@@ -2823,6 +3222,13 @@ function renderCards() {
 
   const s = series.find(x => x.id === currentSeriesId);
   if (!s) {
+    if (series.length) {
+      currentSeriesId = series[0].id;
+      chrome.storage.local.set({ currentSeriesId });
+      renderTabbar();
+      renderCards();
+      return;
+    }
     closeEditSeriesForm();
     area.innerHTML = `<div class="empty-state"><div class="empty-dot"></div><div class="empty-state-text">${t('empty_pick_or_add_series')}</div></div>`;
     addRow.style.display = 'none';
@@ -2845,7 +3251,7 @@ function renderCards() {
         <div class="pcard-info">
           <div class="pcard-name-row">
             <div class="pcard-name">${esc(p.name)}</div>
-            <span class="pcard-edit-badge" title="名稱可編輯">✎</span>
+            <span class="pcard-edit-badge" title="${esc(t('editable_name'))}">✎</span>
           </div>
           <div class="pcard-preview">${esc(excerpt(p.text))}</div>
         </div>
@@ -2856,12 +3262,12 @@ function renderCards() {
       </div>
       ${isExp ? `
       <hr class="pcard-divider">
-      <input class="prompt-name-input" data-action="renamePrompt" data-idx="${i}" value="${esc(p.name)}" placeholder="Prompt 名稱">
+      <input class="prompt-name-input" data-action="renamePrompt" data-idx="${i}" value="${esc(p.name)}" placeholder="${esc(t('prompt_name_placeholder'))}">
       <textarea class="pcard-editor" data-idx="${i}">${esc(p.text)}</textarea>
       <div class="pcard-foot">
-        <span class="pcard-chars">${p.text.length} 字</span>
+        <span class="pcard-chars">${getPromptCountLabel(p.text.length)}</span>
         <div class="spacer"></div>
-        <button class="btn btn-primary btn-xs" data-action="copyOneCard" data-idx="${i}">⧉ 複製 Prompt</button>
+        <button class="btn btn-primary btn-xs" data-action="copyOneCard" data-idx="${i}">${esc(t('copy_prompt'))}</button>
       </div>` : ''}
     </div>`;
   }).join('');
@@ -2898,7 +3304,7 @@ function renderCards() {
         chrome.storage.local.set({ promptSeries: series });
         _showSaveToast();
         const charEl = ta.closest('.pcard').querySelector('.pcard-chars');
-        if (charEl) charEl.textContent = ta.value.length + ' 字';
+        if (charEl) charEl.textContent = getPromptCountLabel(ta.value.length);
         const prev = ta.closest('.pcard').querySelector('.pcard-preview');
         if (prev) prev.textContent = excerpt(ta.value);
       }
@@ -2987,7 +3393,12 @@ function addSeries() {
 
 function saveCurrentSeriesName() {
   const nextName = $('editSeriesName').value.trim();
-  if (!nextName || !currentSeriesId) return;
+  if (!currentSeriesId) return;
+  if (!nextName) {
+    showToast(t('series_name_empty_hint'));
+    $('editSeriesName')?.focus();
+    return;
+  }
   const s = series.find(x => x.id === currentSeriesId);
   if (!s) return;
   s.name = nextName;
@@ -2997,7 +3408,7 @@ function saveCurrentSeriesName() {
   renderCards();
   renderExtractPromptPicker();
   CustomFlowController._renderTaskPicker();
-  showToast(`已更新系列名稱`);
+  showToast(t('series_name_updated'));
 }
 
 function addSeriesPrompt() {
@@ -3017,13 +3428,21 @@ function addSeriesPrompt() {
 }
 
 window.delSeries = async id => {
-  if (!confirm('刪除此系列？')) return;
+  const target = series.find(s => s.id === id);
+  if (!target) return;
+  if (!confirm(t('delete_series_confirm'))) return;
   series = series.filter(s => s.id !== id);
-  if (currentSeriesId === id) { currentSeriesId = null; expandedCardIdx = null; }
+  if (currentSeriesId === id) {
+    currentSeriesId = series[0]?.id || null;
+    expandedCardIdx = null;
+  }
   await chrome.storage.local.set({ promptSeries: series, currentSeriesId });
+  closeEditSeriesForm();
   renderTabbar();
   renderCards();
+  renderExtractPromptPicker();
   CustomFlowController._renderTaskPicker();
+  showToast(t('delete_series_done', { name: target.name }));
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

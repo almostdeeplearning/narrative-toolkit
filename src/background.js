@@ -22,7 +22,7 @@ chrome.runtime.onMessage.addListener((msg) => {
     case 'START_VERIFY_WIKI':   handleVerifyWiki(msg); break;
     case 'RUN_AI_STRUCTURE':    runAIStructure(msg); break;
     case 'DOWNLOAD_MD':         downloadMd(msg.name, msg.content, msg.folder || ''); break;
-    case 'DOWNLOAD_TEXT':       downloadText(msg.name, msg.content, msg.mime || 'text/plain;charset=utf-8', msg.folder || ''); break;
+    case 'DOWNLOAD_TEXT':       downloadText(msg.name, msg.content, msg.mime || 'text/plain;charset=utf-8', msg.folder || '', !!msg.saveAs); break;
     case 'DOWNLOAD_MD_BY_NAME': downloadMdByName(msg.name); break;
     case 'AI_RESPONSE':         handleAIResponse(msg); break;
     case 'STOP':                stopped = true; break;
@@ -983,7 +983,7 @@ async function downloadMd(name, content, folder = '') {
   return downloadText(name, content, 'text/markdown;charset=utf-8', folder);
 }
 
-async function downloadText(name, content, mime = 'text/plain;charset=utf-8', folder = '') {
+async function downloadText(name, content, mime = 'text/plain;charset=utf-8', folder = '', saveAs = false) {
   const filename = folder
     ? folder.replace(/\\/g, '/').replace(/\/$/, '') + '/' + name
     : name;
@@ -992,9 +992,10 @@ async function downloadText(name, content, mime = 'text/plain;charset=utf-8', fo
     name,
     filename,
     mime,
+    saveAs,
     contentLen: String(content || '').length,
   });
-  await chrome.downloads.download({ url, filename, saveAs: false });
+  await chrome.downloads.download({ url, filename, saveAs });
 }
 
 async function downloadMdByName(name) {

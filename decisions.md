@@ -386,3 +386,19 @@
 - **Reason:** ETL 的核心價值已明確轉向 Grok + X narrative context，而每新增一個主表面 AI 目標都會帶來額外的 selector 維護與 browser automation 成本；在 Gemini / Claude 不是當前核心工作流的前提下，先縮小可見 surface 是較低風險的產品收斂方式。
 - **Alternatives considered:** 維持 ETL 多 AI 全量可見（彈性高但維護面過廣）；直接刪除 Gemini / Claude 底層路由（回退成本高，對未來恢復或進階流程不友善）；只保留 Grok、不保留 GPT fallback（會降低一般性備援能力）。
 - **Expected impact:** ETL 的主使用路徑更聚焦於 Grok；維護與測試優先序可集中在 `Grok Inline`、`Grok Page` 與 `GPT`；Gemini / Claude 仍可在未來需要時恢復或轉為進階工作流，而不必立即重建底層注入與截取路徑。
+
+## Decision 52
+- **Decision:** 將原本偏收藏語意的 `Prompt Library / Format Library` 正式收斂為 `Prompt Manager / Format Manager`，並把 Prompt / Schema 區塊定位為可直接編修、匯入、匯出、刪除的管理介面。
+- **Date:** 2026-05-17
+- **created:** 05-17 19
+- **Reason:** 目前這兩個區塊的主要價值已不是被動瀏覽，而是持續新增、改名、編輯、刪除、匯入與匯出；若仍維持 Library / 庫 的命名，會弱化可操作性，也提高非技術使用者對 `Schema` 一詞的理解門檻。
+- **Alternatives considered:** 保留 `Prompt Library / Schema Library` 命名不動；僅修改中文名稱、不調整英文；把管理功能拆到 Settings 或其他次級入口。
+- **Expected impact:** 導覽語意更貼近實際功能；使用者能更快理解這兩個 tab 是主動管理區而不是靜態資料庫；README、Navigation Map 與 UI 文案可維持一致。
+
+## Decision 53
+- **Decision:** Prompt 與 Schema 管理區維持自動儲存，但必須補上明確的安全操作與可見回饋，包括 `取代匯入 / 合併匯入`、Markdown 匯出、`刪除系列`、空名稱提示與 `已自動儲存` 提示。
+- **Date:** 2026-05-17
+- **created:** 05-17 19
+- **Reason:** 原本的自動儲存與匯入匯出能力雖然可用，但缺乏足夠的操作語意與可見回饋，容易讓使用者誤判風險；尤其在系列名稱清空、舊資料匯入與外部編輯需求下，UI 若沒有明確提示，會放大不確定感。
+- **Alternatives considered:** 改回每張卡片手動按「儲存」；只保留 JSON 匯出，不提供 Markdown；把系列刪除隱含在清空名稱後存檔；維持單一覆蓋式匯入。
+- **Expected impact:** Prompt / Schema 管理流程更可預期；使用者可以安全地做合併匯入與外部 Markdown 編輯；自動儲存保留輕量編輯體驗，但不再是不可見的隱性行為。

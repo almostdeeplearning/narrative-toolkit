@@ -1,0 +1,35 @@
+# Python
+.venv/
+__pycache__/
+
+# Node
+node_modules/
+.next/
+
+# Build outputs
+dist/
+build/
+out/
+
+# Graphify outputs
+graphify-out/
+graphify-out-backup/
+
+# Generated docs
+docs/dev-journey/docs/
+
+# Generated HTML bundles
+docs/dev-journey/css-token-map-html/
+docs/dev-journey/docs/
+
+# Assets
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.ico
+*.woff
+*.woff2
+
+# Lock files
+*.lock

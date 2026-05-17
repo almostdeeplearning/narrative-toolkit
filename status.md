@@ -2,7 +2,7 @@
 
 ## Current Focus
 - 分享版最小雙語切換已完成：Topnav 加入 `中文 / English`，偏好儲存於 `uiLanguage`。
-- Side Panel 舊 Distill UI shell 已移除；目前只保留 `Workflow`、`Quick Extract`、`Prompt Library`、`Format Library` 與 `Settings`。
+- Side Panel 舊 Distill UI shell 已移除；目前只保留 `AI Flows`、`Narrative Scan`、`Prompt Manager`、`Format Manager` 與 `Settings`。
 - ETL 主工作流已收斂為 `GPT + Grok` 可見選項；Grok `page / inline` 仍是一級入口，Gemini / Claude 先退到隱藏實作層以降低維護成本。
 
 ## Progress
@@ -22,13 +22,13 @@
   - 套用範圍：`extractSeriesSel`、`extractPromptList`（ETL）、`cfPresetSel`（Custom Flow）、`seriesSelect`（Prompts tab）。
 - **Theme system MVP + ETL / Custom Flow 工作流收斂完成（2026-05-07, created: 05-07 17）：**
   - 新增 `uiTheme` 與 3 個 theme：`nt-dark`、`editorial-light`、`studio-light`。
-  - Top navigation 入口改為：`快速生成`、`自訂流程`、`Prompt 庫`、`Schema 庫`。
+  - Top navigation 入口改為：`脈絡掃描`、`AI Flows`、`Prompt 管理`、`格式管理`。
   - ETL 改為半手動結果流程：Card 04 僅送出 Prompt，不再自動輪詢/回填；Card 05 改為手動截取當前回覆、可編輯預覽與 `.md` 儲存。
   - Custom Flow 的全域執行區移入 Card 05，保留單一 `一鍵跑完全部` 主 CTA。
 - **分享版英文切換 + Distill 舊 DOM 清理完成（2026-05-07, created: 05-07 21）：**
   - Topnav 新增最小 `中文 / English` 切換，僅翻譯可見 UI labels，偏好存於 `chrome.storage.local.uiLanguage`。
   - 舊 `tab-distill` 已自 `sidepanel.html` 移除；`Distill*Block` 檔名與底層流程暫時保留，供 Custom Flow 共用。
-  - 分享版英文文案已收斂為目前可見入口：`Quick Extract`、`Workflow`、`Prompt Library`、`Format Library`。
+  - 分享版英文文案已收斂為目前可見入口：`Narrative Scan`、`AI Flows`、`Prompt Manager`、`Format Manager`。
 - **分享版英文文案 + 英文模式排版微調完成（2026-05-07, created: 05-07 21）：**
   - Workflow 與 ETL 的英文字樣改為較短的產品文案，例如 `Delay`、`Capture Page`、`Run Workflow`、`Capture Reply`。
   - 英文模式下最顯眼的分享面元素不再強依賴 mono / all-caps 呈現；Topnav label、Workflow card title 與主要按鈕改回較自然的 UI 字體節奏。
@@ -56,6 +56,10 @@
   - Custom Flow Source block 對 x.com 內容新增較寬的 primary narrative / thread 擷取與 UI noise 過濾。
   - 目前方向偏向先保留較完整脈絡，再在後續 AI 整理步驟中去噪，而非一開始就過度裁切。
 - **全專案文件更新完成（2026-05-05）：** spec.md、README.md、NAV_MAP.md、schema.md、DESIGN.md、decisions.md。
+- **Prompt / Schema 管理 UX 與 i18n 收尾完成（2026-05-17, created: 05-17 19）：**
+  - `Prompt 庫 / Schema 庫` 對外命名更新為 `Prompt 管理 / 格式管理`，英文同步為 `Prompt Manager / Format Manager`。
+  - Prompt 與 Schema 皆補齊 `取代匯入 / 合併匯入 / 匯出 JSON / 匯出 Markdown`；Markdown 匯出改為可跳出另存位置視窗。
+  - Prompt 系列補上 `刪除系列`、空名稱提示與 autosave 可見回饋；Prompt / Schema 卡片編輯區的英文按鈕、placeholder、字數與提示文案已補齊。
 
 ## Problems
 - 若 Grok 頁面 DOM 改版，`injectToGrok` 的輸入框 selector 可能需要更新（ETL 與 Distill 共用此函數）。
@@ -72,6 +76,7 @@
 - 舊的 `ETLStep1/2/3Block.js` 仍存在於 `src/blocks/`，已不被載入，待手動刪除。
 - `Distill*Block` 命名仍為歷史名稱；雖然對外 UI 已不再顯示 Distill，但內部模組與部分 runtime 路徑尚未重命名。
 - 中英混合介面的字體策略仍是局部調整；若後續擴大英文 surface，可能需要更系統化地區分 mono、UI font 與 editorial font 的使用邊界。
+- Prompt / Schema 的 Markdown 目前僅支援匯出，不支援直接從 Markdown 回匯。
 
 ## Next Steps
 - 清理：手動刪除 `src/blocks/ETLStep1/2/3Block.js` 三個舊檔案。
@@ -80,6 +85,7 @@
 - 選擇性：補強 Custom Flow 一鍵跑完全部的前置檢查（未選 Prompt 時給出提示）。
 - 選擇性：若分享版文案定稿，再決定是否將 `Distill*Block` 重新命名為更中性的 `Workflow*Block`。
 - 選擇性：若英文分享版仍覺得視覺不順，可只在 `data-lang="en"` 下再微調 topnav / Workflow 的字級、字重與間距。
+- 選擇性：若外部以 VS Code 維護 Prompt / Schema 成為常態，可再評估補上 Markdown 匯入。
 
 ## Important Notes
 - Side Panel 固定在瀏覽器右側，寬度由使用者拖曳決定，高度等於瀏覽器視窗高度。
