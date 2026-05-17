@@ -14,6 +14,8 @@ a semi-automated research tool designed for rich discussions on X.
 
 It helps turn professional posts and discussions on X into structured, easy-to-understand insights through AI workflows.
 
+BiteFlo helps transform complex insights into understandable bites and structured knowledge, making it easier for non-experts to trace technology trajectories and evolving industry dynamics over time.
+
 > Note: This tool is built mostly based on my own usage habits and is still evolving.
 
 ---
