@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "BiteFlo",
   "version": "1.0.0",
-  "description": "Grok萃取 + 長文整理 → skill.md / wiki.md",
+  "description": "Browser-native X narrative scanning and AI workflows for markdown notes, wiki outputs, and reusable prompt packs.",
   "permissions": ["storage", "scripting", "tabs", "downloads", "activeTab", "sidePanel"],
   "host_permissions": [
     "https://x.com/*",

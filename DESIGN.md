@@ -1,7 +1,7 @@
 ---
 name: Narrative Toolkit
 version: 0.1.0
-description: A compact Chrome extension interface for AI-assisted extraction, distillation, prompt management, and document export workflows.
+description: A compact Chrome Side Panel interface for browser-native X narrative scanning, AI workflows, prompt management, and markdown-oriented export.
 colors:
   bg: "#13110F"
   bg2: "#111111"
@@ -147,7 +147,7 @@ components:
 
 ## Overview
 
-Narrative Toolkit is a dense, work-focused Chrome extension for moving content through AI extraction, distillation, prompt management, review, and export. The design language is monochrome, compact, and terminal-adjacent: a matte black workspace, fine borders, restrained typography, and small status colors used only when state needs to be unmistakable.
+Narrative Toolkit is a dense, work-focused Chrome Side Panel for browser-native X narrative scanning, AI workflow execution, prompt management, review, and export. The design language is monochrome, compact, and terminal-adjacent: a matte black workspace, fine borders, restrained typography, and small status colors used only when state needs to be unmistakable.
 
 This interface should feel like a reliable control surface rather than a marketing product. Favor fast scanning, predictable panel structure, compact controls, and quiet feedback over decorative visuals.
 
@@ -162,6 +162,9 @@ Primary UI surfaces found in the codebase:
 - Custom Flow workflow with 5 collapsible Block Cards (Source / Task / Format / AI / Run), per-block delay settings, preset save/load, and a run-all control.
 - Prompt Manager with a horizontal series tab bar and expandable prompt cards; supports JSON import/export.
 - Schema tab with expandable schema cards for format template management; supports JSON import/export.
+- First-run starter content is intentionally lightweight:
+  - Prompt starter series: `Narrative Scan Starter Pack`, `AI Flow Starter Pack`
+  - Starter schemas: `wiki.md`, `table.md`
 - Settings sections for automation, download folders, font size, and text contrast.
 - CSP-safe UI glue is kept in `src/popup-ui-patch.js` so the extension satisfies MV3 security rules.
 - Distill Block logic is split into 5 plain-script files under `src/blocks/`, loaded before `sidepanel.js`. These blocks are partially shared with Custom Flow.
@@ -173,7 +176,7 @@ Use a precise, dark utility aesthetic:
 - Black base surfaces with subtle nested contrast.
 - Borders as the primary separator; avoid shadows.
 - Small uppercase mono labels for structure.
-- Chinese/Taiwanese product copy in sans-serif for readability.
+- English is the default first-run UI language; bilingual product copy should still remain readable and visually balanced.
 - Buttons and pills should feel like compact instrument controls.
 - Data-heavy areas should prioritize legibility and editing affordance.
 
@@ -266,26 +269,18 @@ Modal-like layering is not currently part of the interface. If added later, use 
 
 ### Sidebar
 
-The sidebar is a narrow command rail with a small geometric brand mark, vertical navigation items, and a bottom config item.
-
-Navigation items:
-
-- Full width inside `6px` horizontal sidebar padding.
-- `7px` vertical padding.
-- Mono code-like abbreviation above a tiny uppercase label.
-- Inactive color: `text3`.
-- Hover: `accentBg` background and `text2`.
-- Active: `bg3` background, `text`, and a `2px` left active indicator.
+Deprecated. The current product no longer uses the old vertical sidebar navigation. Keep this section only as historical reference when comparing legacy popup-era screenshots or styles. All current navigation guidance should follow the Topbar / Topnav rules below.
 
 ### Topbar
 
 The topbar anchors the active workflow:
 
-- Height `52px`.
+- Height `44px`.
 - Horizontal padding `24px`.
 - Bottom border `line`.
 - Title uses DM Mono uppercase.
 - Optional AI selector appears on the right as pills.
+- Language toggle is compact and unobtrusive; first-run default should land in English unless a saved `uiLanguage` exists.
 
 Keep the topbar quiet. It is a locator, not a hero.
 
@@ -478,7 +473,7 @@ Custom Flow uses a vertical stack of collapsible Block Cards (`.cf-card`):
 - Active state (`.cf-active`): border brightens to `text2` to indicate the block is currently executing.
 - Card header (`.cf-card-head`): contains a numeric badge, title, delay selector, and show/hide toggle button.
 - Card body (`.cf-card-body`): full content area; padding `14px`.
-- Delay selector (`.cf-delay-sel`): small dropdown for 無延遲 / 2s / 5s / 10s / 20s / 自訂.
+- Delay selector (`.cf-delay-sel`): small dropdown for 無延遲 / 2s / 5s / 10s / 20s / 自訂. English label should read `Wait before next step (s)`.
 - Custom delay input (`.cf-delay-custom`): appears only when "自訂" is selected.
 - Run-all bar (`.cf-run-bar`): sits above Card 1; contains the primary "▶▶ 一鍵跑完全部" button and a hint label.
 
@@ -494,6 +489,15 @@ Prompt Manager uses a horizontal series tab bar + vertical card stack:
 - Only one card expands at a time (`expandedCardIdx`).
 - Supports JSON import/export for the full prompt series collection.
 - Truncate long names with ellipsis in collapsed card headers.
+- First-run starter content should feel like a lightweight demo pack rather than a template dump. Keep starter series few, deletable, and clearly reusable.
+
+### Schema / Format Manager
+
+Schema / Format Manager uses the same expandable card language as Prompt Manager, but starter templates should be even more restrained than prompts.
+
+- Starter schema set should remain minimal and workflow-oriented.
+- Current intended first-run starter templates are `wiki.md` and `table.md`.
+- Avoid shipping a broad library of format templates by default unless they support a clearly visible primary workflow.
 
 ### Library Items
 
